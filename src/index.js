@@ -1,21 +1,20 @@
-import express from 'express';
-import { router as webhookRouter } from './handlers/webhook.js';
-import { verifyWebhook } from './utils/verifyWebhook.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
+// src/index.js  — Express server entry point
+import 'dotenv/config';
+import express        from 'express';
+import { routeMessage }   from './handlers/messageRouter.js';
+import { verifyWebhook }  from './utils/verifyWebhook.js';
 
 const app = express();
 app.use(express.json());
 
-// ─── Webhook Verification (GET) ───────────────────────────────────────────────
+// Meta webhook verification (GET)
 app.get('/webhook', verifyWebhook);
 
-// ─── Incoming Message Handler (POST) ─────────────────────────────────────────
-app.use('/webhook', webhookRouter);
+// Incoming WhatsApp messages (POST)
+app.post('/webhook', routeMessage);
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/', (req, res) => res.send('WhatsApp Bot is running ✅'));
+// Health check
+app.get('/', (_req, res) => res.send('PM SVANidhi Bot is running ✅'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
