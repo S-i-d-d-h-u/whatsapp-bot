@@ -162,8 +162,8 @@ async function handleTextMessage(from, state, text) {
 async function handleButtonMessage(from, state, buttonId) {
   if (!buttonId) return;
 
-  // ── Phase 0: Onboarding ──────────────────────────────────────────────────
-  if (buttonId === 'onboard_yes' || buttonId === 'onboard_no') {
+ // ── Phase 0: Onboarding ──────────────────────────────────────────────────
+  if (buttonId === 'onboard_yes' || buttonId === 'onboard_no' || buttonId === 'onboard_call') {
     await handleOnboardingReply(from, buttonId);
     return;
   }
