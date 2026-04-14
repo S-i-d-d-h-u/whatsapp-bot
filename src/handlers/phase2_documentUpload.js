@@ -43,7 +43,7 @@ await sendText(from, `Please wait, processing your document...`);
               aadhaar: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type,
                          receivedAt: new Date().toISOString(), ocrPreview: preview } },
     });
-    await sendText(from, `✅ *Identity document received!*\n\n📋 Detected: "${preview}"`);
+    await sendText(from, `Identity document received!\n\nText detected: ${preview}`);
   } catch {
     updateSessionData(from, {
       docs: { ...getSession(from).data.docs,
@@ -80,8 +80,9 @@ export async function handlePANUpload(from, mediaObject) {
                      receivedAt: new Date().toISOString(), panNumber: keyData.panNumber } },
     });
     const msg = keyData.panNumber
-      ? `✅ *PAN Card received!*\n🔍 PAN Number detected: \`${keyData.panNumber}\``
-      : `✅ *PAN Card received!* _(Number will be verified manually.)_`;
+    const msg = keyData.panNumber
+  ? `PAN Card received! PAN Number: ${keyData.panNumber}`
+  : `PAN Card received! Number will be verified manually.`;
     await sendText(from, msg);
   } catch {
     updateSessionData(from, {
@@ -123,9 +124,9 @@ export async function handlePassbookUpload(from, mediaObject) {
               passbook: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type,
                           receivedAt: new Date().toISOString(), accountNumber: keyData.accountNum } },
     });
-    const msg = keyData.accountNum
-      ? `✅ *Bank document received!*\n🔍 Account number: \`${keyData.accountNum}\``
-      : `✅ *Bank document received!* _(Details will be verified manually.)_`;
+   const msg = keyData.accountNum
+  ? `Bank document received! Account number: ${keyData.accountNum}`
+  : `Bank document received! Details will be verified manually.`;
     await sendText(from, msg);
   } catch {
     updateSessionData(from, {
