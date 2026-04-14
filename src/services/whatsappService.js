@@ -53,10 +53,7 @@ export async function getMediaUrl(mediaId) {
 }
 
 export async function downloadMediaAsBase64(mediaUrl) {
-  const res         = await fetch(mediaUrl, {
-    headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
-  });
-  // FIX: use arrayBuffer() instead of deprecated buffer()
+  const res         = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` } });
   const arrayBuffer = await res.arrayBuffer();
   return Buffer.from(arrayBuffer).toString('base64');
 }
