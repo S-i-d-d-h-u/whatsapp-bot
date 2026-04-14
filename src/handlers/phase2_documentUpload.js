@@ -34,7 +34,7 @@ async function requestAadhaar(from) {
 }
 
 export async function handleAadhaarUpload(from, mediaObject) {
-  await sendText(from, `⏳ Receiving your document...`);
+await sendText(from, `Please wait, processing your document...`);
   try {
     const { fullText, keyData } = await extractTextFromImage(mediaObject.id);
     const preview = fullText.slice(0, 100).replace(/\n/g, ' ');
@@ -71,7 +71,7 @@ async function requestPAN(from) {
 }
 
 export async function handlePANUpload(from, mediaObject) {
-  await sendText(from, `⏳ Receiving your PAN card...`);
+ await sendText(from, `Please wait, processing your document...`);
   try {
     const { keyData } = await extractTextFromImage(mediaObject.id);
     updateSessionData(from, {
@@ -115,7 +115,7 @@ async function requestPassbook(from) {
 }
 
 export async function handlePassbookUpload(from, mediaObject) {
-  await sendText(from, `⏳ Receiving your bank document...`);
+  await sendText(from, `Please wait, processing your document...`);
   try {
     const { keyData } = await extractTextFromImage(mediaObject.id);
     updateSessionData(from, {
