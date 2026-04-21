@@ -1,16 +1,27 @@
 // src/handlers/phase3_videoKYC.js  — Phase 3: Video KYC
-import { sendText, sendButtons }      from '../services/whatsappService.js';
+import { sendText, sendButtons, sendImage } from '../services/whatsappService.js';
 import { setSession, getSession,
-         updateSessionData, STATE }   from '../utils/sessionManager.js';
-import crypto                         from 'crypto';
+         updateSessionData, STATE }         from '../utils/sessionManager.js';
+import crypto                               from 'crypto';
 
 const KYC_BASE   = process.env.KYC_BASE_URL || 'https://meet.pmsvanidhi.gov.in';
+const KYC_IMG    = process.env.KYC_IMG_URL  || '';
 const EXPIRY_MIN = 30;
 const WAIT_MS    = 4000;
 const pause      = ms => new Promise(r => setTimeout(r, ms));
 
 export async function startVideoKYC(from) {
   setSession(from, STATE.VIDEO_KYC);
+
+  // Send KYC instructional image if URL is configured
+  if (KYC_IMG) {
+    await sendImage(
+      from,
+      KYC_IMG,
+      'How to complete your Video KYC'
+    ).catch(err => console.error('[KYC] Image send failed:', err.message));
+    await pause(500);
+  }
 
   await sendText(from,
     'Step 3 of 3 - Video KYC\n\n' +
@@ -23,7 +34,7 @@ export async function startVideoKYC(from) {
     'During the call, the officer will ask you to:\n' +
     '1. Hold your ID card next to your face\n' +
     '2. State your name and address clearly\n' +
-    '3. Confirm your loan amount of Rs.25,000\n\n' +
+    '3. Confirm your loan amount\n\n' +
     'The officer will NEVER ask for your OTP or PIN.'
   );
 

@@ -1,12 +1,26 @@
 // src/handlers/phase4_repayment.js  — Phase 4/5: Repayment Plans
-import { sendText, sendList, sendButtons }             from '../services/whatsappService.js';
+import { sendText, sendList, sendButtons,
+         sendImage }                           from '../services/whatsappService.js';
 import { setSession, getSession, updateSessionData,
-         STATE }                                        from '../utils/sessionManager.js';
+         STATE }                               from '../utils/sessionManager.js';
 
-const LOAN = 25000;
+const LOAN      = 25000;
+const REPAY_IMG = process.env.REPAY_IMG_URL || '';
+const pause     = ms => new Promise(r => setTimeout(r, ms));
 
 export async function showRepaymentMenu(from) {
   setSession(from, STATE.REPAYMENT_MENU);
+
+  // Send repayment options image if URL is configured
+  if (REPAY_IMG) {
+    await sendImage(
+      from,
+      REPAY_IMG,
+      'Your 3 repayment plan options — choose what works best for your business'
+    ).catch(err => console.error('[Repay] Image send failed:', err.message));
+    await pause(500);
+  }
+
   await sendList(
     from,
     'Choose Your Repayment Plan\n\nSelect the plan that best fits your income pattern.',
@@ -14,8 +28,8 @@ export async function showRepaymentMenu(from) {
     [{
       title: 'Repayment Options',
       rows: [
-        { id: 'repay_monthly',  title: 'Monthly Fixed EMI',    description: 'Pay equal amount every month' },
-        { id: 'repay_seasonal', title: 'Seasonal Repayment',   description: 'Pay more during festival months' },
+        { id: 'repay_monthly',  title: 'Monthly Fixed EMI',     description: 'Pay equal amount every month' },
+        { id: 'repay_seasonal', title: 'Seasonal Repayment',    description: 'Pay more during festival months' },
         { id: 'repay_micro',    title: 'Micro Daily Repayment', description: 'Pay small amounts every day' },
       ],
     }],
