@@ -101,6 +101,20 @@ body{
 }
 .phase-tab.done .dot{background:var(--green-mid)}
 .phase-tab.active .dot{background:var(--green)}
+/* ── Live sync indicator ─────────────────────────────────────── */
+#syncBadge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.15);border-radius:20px;
+  padding:3px 9px;font-size:11px;font-weight:500;color:#fff
+}
+#syncDot{
+  width:7px;height:7px;border-radius:50%;background:#86efac;
+  animation:syncpulse 2s infinite
+}
+#syncDot.stale{background:#fca5a5;animation:none}
+@keyframes syncpulse{
+  0%,100%{opacity:1} 50%{opacity:.4}
+}
 
 /* ── Vendor strip ────────────────────────────────────────────── */
 .vendor-strip{
@@ -309,7 +323,10 @@ input[type=range]{width:100%;accent-color:var(--green)}
         <div class="topbar-sub">Agent Console</div>
       </div>
     </div>
-    <span class="topbar-agent" id="agentBadge">Agent</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="topbar-agent" id="agentBadge">Agent</span>
+      <span id="syncBadge" style="display:none"><span id="syncDot"></span><span id="syncLabel">Live</span></span>
+    </div>
   </div>
 
   <!-- Phase tabs -->
@@ -415,7 +432,15 @@ async function agentAction(action, value = '') {
       body: JSON.stringify({ vendorPhone: vendor.phone, action, value }),
     });
     if (!data.ok) { toast(data.error || 'Action failed', false); return null; }
-    vendor.state = data.newState || vendor.state;
+    // Fetch full updated session to sync data fields too
+    try {
+      const sess = await fetch('/agent/session/' + vendor.phone + '?pass=' + PASS);
+      const sessData = await sess.json();
+      vendor.state = sessData.state || data.newState || vendor.state;
+      vendor.data  = sessData.data  || vendor.data;
+    } catch (_) {
+      vendor.state = data.newState || vendor.state;
+    }
     updateVendorStrip();
     toast('Done');
     return data;
@@ -455,8 +480,17 @@ async function loadVendor() {
     vendor.data  = data.data  || {};
     updateVendorStrip();
     addLog('Loaded vendor +' + raw + ' state=' + vendor.state);
+    // Auto-switch to the phase matching vendor's current state
+    const targetPhase = STATE_TO_PHASE[vendor.state];
+    if (targetPhase !== undefined) {
+      currentPhase = targetPhase;
+      document.querySelectorAll('.phase-tab').forEach((t, i) => {
+        t.classList.toggle('active', i === targetPhase);
+      });
+    }
     renderPhase(currentPhase);
-    toast('Vendor loaded');
+    startPolling();
+    toast('Vendor loaded — live sync active');
   } catch (e) {
     toast('Could not load vendor', false);
   }
@@ -1190,6 +1224,94 @@ async function approveDisbursement() {
           Vendor has received confirmation on WhatsApp.
         </div>
       </div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// LIVE SYNC — polls vendor session every 4s and auto-updates UI
+// ══════════════════════════════════════════════════════════════
+
+// Maps each WhatsApp bot STATE to the correct dashboard tab index
+const STATE_TO_PHASE = {
+  IDLE: 0, ONBOARDING: 0,
+  COLLECT_PHONE: 1, COLLECT_UPI: 1, CONSENT_GATE: 1, ELIGIBILITY_RESULT: 1,
+  AWAIT_AADHAAR: 2, AWAIT_PAN: 2, AWAIT_PASSBOOK: 2,
+  VIDEO_KYC: 4, AWAITING_APPROVAL: 4,
+  REPAYMENT_MENU: 5, MONTHLY_EMI: 5, MONTHLY_CONFIRM: 5,
+  SEASONAL_HIGH: 5, SEASONAL_LOW: 5, SEASONAL_CONFIRM: 5,
+  MICRO_DAILY: 5, MICRO_TENURE: 5, MICRO_CONFIRM: 5,
+  FINALIZED: 6,
+};
+
+let pollTimer      = null;
+let lastSyncTime   = null;
+let syncFailing    = false;
+
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(syncVendorState, 4000);
+  document.getElementById('syncBadge').style.display = 'inline-flex';
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  document.getElementById('syncBadge').style.display = 'none';
+}
+
+async function syncVendorState() {
+  if (!vendor.phone) return;
+  try {
+    const sep = '/agent/session/' + vendor.phone;
+    const res = await fetch(sep + '?pass=' + PASS);
+    const data = await res.json();
+    
+    const newState = data.state || 'IDLE';
+    const newData  = data.data  || {};
+    
+    // Update sync indicator
+    lastSyncTime = Date.now();
+    syncFailing  = false;
+    const dot = document.getElementById('syncDot');
+    const lbl = document.getElementById('syncLabel');
+    if (dot) { dot.classList.remove('stale'); }
+    if (lbl) { lbl.textContent = 'Live'; }
+    
+    // If state changed, update UI
+    if (newState !== vendor.state) {
+      const prevState = vendor.state;
+      vendor.state = newState;
+      vendor.data  = newData;
+      updateVendorStrip();
+      addLog('State changed: ' + prevState + ' → ' + newState);
+      
+      // Auto-switch to the correct tab for new state
+      const targetPhase = STATE_TO_PHASE[newState];
+      if (targetPhase !== undefined && targetPhase !== currentPhase) {
+        // Only auto-switch if agent is not on a later phase (don't pull them backwards unless finalized)
+        const shouldSwitch = targetPhase > currentPhase || newState === 'FINALIZED';
+        if (shouldSwitch) {
+          currentPhase = targetPhase;
+          document.querySelectorAll('.phase-tab').forEach((t, i) => {
+            t.classList.toggle('active', i === targetPhase);
+          });
+          renderPhase(targetPhase);
+          toast('Vendor moved to: ' + (STATE_LABELS[newState] || newState), true);
+        }
+      } else if (targetPhase === currentPhase) {
+        // Same tab but state changed — re-render to reflect new sub-state
+        vendor.data = newData;
+        renderPhase(currentPhase);
+      }
+    } else {
+      // State same — still update data in case documents were uploaded etc.
+      vendor.data = newData;
+    }
+  } catch (e) {
+    syncFailing = true;
+    const dot = document.getElementById('syncDot');
+    const lbl = document.getElementById('syncLabel');
+    if (dot) { dot.classList.add('stale'); }
+    if (lbl) { lbl.textContent = 'Offline'; }
   }
 }
 
