@@ -20,7 +20,13 @@ export const STATE = {
   AWAIT_AADHAAR:      'AWAIT_AADHAAR',
   AWAIT_PAN:          'AWAIT_PAN',
   AWAIT_PASSBOOK:     'AWAIT_PASSBOOK',
-  // Phase 3 — Video KYC
+  AWAIT_QR:           'AWAIT_QR',
+  // Phase 3 — Profiling & Eligibility
+  PROFILING_REFS:     'PROFILING_REFS',
+  PROFILING_FINANCE:  'PROFILING_FINANCE',
+  LOAN_SELECTION:     'LOAN_SELECTION',
+  // Phase 4 — Video KYC
+  KYC_READINESS:      'KYC_READINESS',
   VIDEO_KYC:          'VIDEO_KYC',
   AWAITING_APPROVAL:  'AWAITING_APPROVAL',
   // Phase 4 — Repayment

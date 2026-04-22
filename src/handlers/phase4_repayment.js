@@ -4,7 +4,8 @@ import { sendText, sendList, sendButtons,
 import { setSession, getSession, updateSessionData,
          STATE }                               from '../utils/sessionManager.js';
 
-const LOAN      = 25000;
+const LOAN_DEFAULT = 30000; // PM SVANidhi max: 20% of ₹1.5L annual revenue
+const getLoan = (from) => { const { data } = require; return data?.loanAmount || LOAN_DEFAULT; };
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
 const pause     = ms => new Promise(r => setTimeout(r, ms));
 
@@ -44,7 +45,7 @@ export async function handleRepaymentSelection(from, state, buttonId) {
     setSession(from, STATE.MONTHLY_EMI);
     await sendText(from,
       'Monthly Fixed EMI Plan\n\n' +
-      'Loan Amount: Rs.' + LOAN.toLocaleString('en-IN') + '\n\n' +
+      'Loan Amount: Rs.' + LOAN_DEFAULT.toLocaleString('en-IN') + '\n\n' +
       'Please enter your preferred repayment tenure in months.\n\n' +
       'Options: 3, 6, 9, or 12 months'
     );
@@ -68,7 +69,7 @@ export async function handleRepaymentSelection(from, state, buttonId) {
     await sendText(from,
       'Micro Daily Repayment Plan\n\n' +
       'Pay a small fixed amount every day - ideal for vendors with daily cash income.\n\n' +
-      'Loan Amount: Rs.' + LOAN.toLocaleString('en-IN') + '\n\n' +
+      'Loan Amount: Rs.' + LOAN_DEFAULT.toLocaleString('en-IN') + '\n\n' +
       'How much can you pay per day (in Rs.)?\n\n' +
       'Example: 50 or 100'
     );
@@ -105,12 +106,13 @@ export async function handleRepaymentInput(from, state, text) {
       await sendText(from, 'Please choose: 3, 6, 9, or 12 months.');
       return;
     }
-    const emi = Math.ceil(LOAN / num);
+    const loanAmt = getSession(from).data.loanAmount || LOAN_DEFAULT;
+    const emi = Math.ceil(loanAmt / num);
     updateSessionData(from, { repaymentPlan: { type: 'MONTHLY', tenure: num, emi } });
     setSession(from, STATE.MONTHLY_CONFIRM);
     await sendButtons(from,
       'Monthly EMI Plan Summary\n\n' +
-      'Loan Amount: Rs.' + LOAN.toLocaleString('en-IN') + '\n' +
+      'Loan Amount: Rs.' + LOAN_DEFAULT.toLocaleString('en-IN') + '\n' +
       'Tenure: ' + num + ' months\n' +
       'Monthly EMI: Rs.' + emi.toLocaleString('en-IN') + '\n\n' +
       'First payment due 30 days after disbursement.',
@@ -140,8 +142,9 @@ export async function handleRepaymentInput(from, state, text) {
     const { repaymentPlan } = getSession(from).data;
     const highMonths = repaymentPlan.highMonths;
     const lowMonths  = 12 - highMonths;
+    const loanAmtS = getSession(from).data.loanAmount || LOAN_DEFAULT;
     const highTotal  = num * highMonths;
-    const remaining  = Math.max(LOAN - highTotal, 0);
+    const remaining  = Math.max(loanAmtS - highTotal, 0);
     const lowEMI     = lowMonths > 0 ? Math.ceil(remaining / lowMonths) : 0;
     const total      = num * highMonths + lowEMI * lowMonths;
 
@@ -150,7 +153,7 @@ export async function handleRepaymentInput(from, state, text) {
     });
     setSession(from, STATE.SEASONAL_CONFIRM);
 
-    const warning = highTotal >= LOAN
+    const warning = highTotal >= loanAmtS
       ? '\nNote: Your high-period payments alone cover the loan. No low-month payment needed.' : '';
 
     await sendButtons(from,
@@ -184,9 +187,10 @@ export async function handleRepaymentInput(from, state, text) {
     const daily         = repaymentPlan.dailyAmount;
     const daysInPeriod  = num * 30;
     const totalViaDaily = daily * daysInPeriod;
-    const sufficient    = totalViaDaily >= LOAN;
-    const suggested     = Math.ceil(LOAN / daysInPeriod);
-    const daysToRepay   = Math.ceil(LOAN / daily);
+    const loanAmtM = getSession(from).data.loanAmount || LOAN_DEFAULT;
+    const sufficient    = totalViaDaily >= loanAmtM;
+    const suggested     = Math.ceil(loanAmtM / daysInPeriod);
+    const daysToRepay   = Math.ceil(loanAmtM / daily);
 
     updateSessionData(from, {
       repaymentPlan: { ...repaymentPlan, tenure: num, sufficient, suggestedDaily: suggested },
@@ -200,7 +204,7 @@ export async function handleRepaymentInput(from, state, text) {
         'Days to repay: approximately ' + daysToRepay + ' days\n\n' +
         'Your daily amount covers the loan within your chosen tenure.'
       : 'Revised Suggestion\n\n' +
-        'Rs.' + daily + ' per day is not enough to cover Rs.' + LOAN.toLocaleString('en-IN') + ' in ' + num + ' months.\n\n' +
+        'Rs.' + daily + ' per day is not enough to cover Rs.' + LOAN_DEFAULT.toLocaleString('en-IN') + ' in ' + num + ' months.\n\n' +
         'Suggested daily amount: Rs.' + suggested.toLocaleString('en-IN') + '\n' +
         '(to repay in exactly ' + num + ' months)';
 

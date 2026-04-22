@@ -2,11 +2,17 @@
 import { getSession, STATE }           from '../utils/sessionManager.js';
 import { startOnboarding }             from './phase0_onboarding.js';
 import {
-  handleCollectPhone, handlePhoneInput, handleUPIInput,
-  handleConsentReply, handleEligibilityReply,
+  handleCollectPhone, handlePhoneInput, handleDbPathChoice,
+  handleOtpInput, handleUPIInput,
+  handleConsentReply, handleEligibilityReply, handleFinalEligibilityProceed,
 }                                      from './phase1_loanCustomization.js';
-import { handlePANSkip, startDocumentUpload } from './phase2_documentUpload.js';
-import { startVideoKYC, handleKYCDone }       from './phase3_videoKYC.js';
+import { handlePANSkip, startDocumentUpload,
+         requestPassbook, requestQRCode,
+         agentApproveDocument, agentRetryDocument } from './phase2_documentUpload.js';
+import { startProfiling, askFinancialConsent,
+         handleFinancialConsentReply }        from './phase3_profiling.js';
+import { askKycReadiness, startVideoKYC,
+         handleKYCDone, agentApproveKYC }      from './phase4_videoKYC.js';
 import {
   showRepaymentMenu, handleRepaymentSelection, handleRepaymentInput,
 }                                      from './phase4_repayment.js';
@@ -29,9 +35,23 @@ export async function routeAgentAction(vendorPhone, action, value) {
     case 'restart_session':
       await startOnboarding(from);
       break;
+    case 'select_db_path':
+      if (!value) throw new Error('Path required: aadhaar or bank');
+      await handleDbPathChoice(from, value === 'aadhaar' ? 'path_aadhaar' : 'path_bank');
+      break;
     case 'submit_phone':
       if (!value) throw new Error('Phone value required');
       await handlePhoneInput(from, value);
+      break;
+    case 'verify_otp':
+      if (!value) throw new Error('OTP value required');
+      await handleOtpInput(from, value);
+      break;
+    case 'fetch_aadhaar_data':
+      await handleDbPathChoice(from, 'path_aadhaar');
+      break;
+    case 'fetch_bank_data':
+      await handleDbPathChoice(from, 'path_bank');
       break;
     case 'submit_upi':
       await handleUPIInput(from, value || 'skip');
@@ -48,6 +68,9 @@ export async function routeAgentAction(vendorPhone, action, value) {
     case 'proceed_eligibility':
       await handleEligibilityReply(from, 'eligibility_proceed');
       break;
+    case 'proceed_final_eligibility':
+      await handleFinalEligibilityProceed(from);
+      break;
     case 'exit_eligibility':
       await handleEligibilityReply(from, 'eligibility_exit');
       break;
@@ -57,11 +80,60 @@ export async function routeAgentAction(vendorPhone, action, value) {
     case 'skip_pan':
       await handlePANSkip(from);
       break;
+    case 'request_passbook':
+      await requestPassbook(from);
+      break;
+    case 'request_qr':
+      await requestQRCode(from);
+      break;
+    case 'approve_document': {
+      // value = JSON string: { docKey, fields }
+      if (!value) throw new Error('approve_document requires {docKey, fields}');
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      await agentApproveDocument(from, parsed.docKey, parsed.fields || {});
+      break;
+    }
+    case 'retry_document': {
+      if (!value) throw new Error('retry_document requires docKey');
+      const docKey = typeof value === 'string' ? value : value.docKey;
+      await agentRetryDocument(from, docKey);
+      break;
+    }
+    case 'start_profiling':
+      await startProfiling(from);
+      break;
+    case 'save_references': {
+      // value = JSON: { ref1Name, ref1Phone, ref2Name, ref2Phone }
+      const refs = typeof value === 'string' ? JSON.parse(value) : value;
+      const { updateSessionData } = await import('../utils/sessionManager.js');
+      updateSessionData(from, refs);
+      const { askFinancialConsent: afc } = await import('./phase3_profiling.js');
+      await afc(from);
+      break;
+    }
+    case 'financial_consent':
+      await handleFinancialConsentReply(from, value === 'yes' ? 'finance_yes' : 'finance_no');
+      break;
+    case 'set_loan_amount': {
+      const { handleLoanAmountInput } = await import('./phase3_profiling.js');
+      if (!value) throw new Error('loan amount required');
+      await handleLoanAmountInput(from, String(value));
+      break;
+    }
+    case 'confirm_loan':
+      { const { handleLoanConfirm } = await import('./phase3_profiling.js'); await handleLoanConfirm(from, 'loan_confirm'); }
+      break;
+    case 'start_kyc_readiness':
+      await askKycReadiness(from);
+      break;
     case 'start_kyc':
       await startVideoKYC(from);
       break;
     case 'complete_kyc':
       await handleKYCDone(from);
+      break;
+    case 'approve_kyc':
+      await agentApproveKYC(from);
       break;
     case 'show_repayment_menu':
       await showRepaymentMenu(from);
@@ -105,6 +177,11 @@ export function getStateLabel(state) {
     AWAIT_AADHAAR: { label: 'Awaiting Aadhaar', phase: 2, color: 'blue' },
     AWAIT_PAN: { label: 'Awaiting PAN', phase: 2, color: 'blue' },
     AWAIT_PASSBOOK: { label: 'Awaiting passbook', phase: 2, color: 'blue' },
+    AWAIT_QR:       { label: 'Awaiting QR code',  phase: 2, color: 'blue' },
+    PROFILING_REFS:    { label: 'Collecting references', phase: 3, color: 'blue'  },
+    PROFILING_FINANCE: { label: 'Financial consent',     phase: 3, color: 'amber' },
+    LOAN_SELECTION:    { label: 'Loan amount input',     phase: 3, color: 'blue'  },
+    KYC_READINESS:     { label: 'KYC readiness check',  phase: 4, color: 'amber' },
     VIDEO_KYC: { label: 'Video KYC pending', phase: 4, color: 'amber' },
     AWAITING_APPROVAL: { label: 'Processing', phase: 4, color: 'amber' },
     REPAYMENT_MENU: { label: 'Repayment menu', phase: 5, color: 'blue' },

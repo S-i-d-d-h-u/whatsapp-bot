@@ -1,5 +1,5 @@
 // repaymentCalculator.js  — Standalone repayment calculator (root level)
-export const LOAN_AMOUNT = 25_000;
+export const LOAN_AMOUNT = 30_000; // PM SVANidhi max: ₹30,000 (20% of ₹1.5L annual revenue)
 const ceilDiv = (a, b) => Math.ceil(a / b);
 const inr     = (n)    => `₹${Number(n).toLocaleString('en-IN')}`;
 

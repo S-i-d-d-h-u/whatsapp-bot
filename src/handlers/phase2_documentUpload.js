@@ -1,6 +1,6 @@
-// src/handlers/phase2_documentUpload.js  — Phase 2: Document Upload
-// FIXED: removed backtick code formatting and special chars that cause
-//        WhatsApp error 131009 on test numbers.
+// src/handlers/phase2_documentUpload.js  — Phase 2: Document Upload & OCR (v3)
+// Sequence: 1. Aadhaar/Voter ID → 2. Bank Passbook → 3. QR/UPI ID
+// After agent reviews and approves each doc, bot sends extracted info back to vendor.
 import { sendText, sendButtons }        from '../services/whatsappService.js';
 import { setSession, getSession,
          updateSessionData, STATE }     from '../utils/sessionManager.js';
@@ -8,21 +8,32 @@ import { extractTextFromImage }         from '../services/ocrService.js';
 
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
-// ── Entry ──────────────────────────────────────────────────────────────────
+// ── helpers ────────────────────────────────────────────────────────────────
+function mergeDocs(from, key, payload) {
+  const existing = getSession(from).data.docs || {};
+  updateSessionData(from, { docs: { ...existing, [key]: payload } });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ENTRY
+// ══════════════════════════════════════════════════════════════════════════
 export async function startDocumentUpload(from) {
   await sendText(from,
     'Loan customization complete!\n\n' +
     'Now moving to Step 2 - Document Upload\n\n' +
-    'You will need to upload 3 documents:\n\n' +
+    'You will need to send photos of 3 documents:\n\n' +
     '1. Aadhaar Card or Voter ID\n' +
-    '2. PAN Card (optional - you can skip)\n' +
-    '3. Bank Passbook or Statement\n\n' +
-    'Tips: Good lighting, all 4 corners visible, text clearly readable.'
+    '2. Bank Passbook (first page)\n' +
+    '3. UPI QR Code or UPI ID screenshot\n\n' +
+    'Tips for a good photo: good lighting, all 4 corners visible, text clearly readable.'
   );
+  await pause(600);
   await requestAadhaar(from);
 }
 
-// ── Document 1: Aadhaar ────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+// DOCUMENT 1 — Aadhaar / Voter ID
+// ══════════════════════════════════════════════════════════════════════════
 async function requestAadhaar(from) {
   setSession(from, STATE.AWAIT_AADHAAR);
   await sendText(from,
@@ -35,185 +46,275 @@ async function requestAadhaar(from) {
 }
 
 export async function handleAadhaarUpload(from, mediaObject) {
-  await sendText(from, 'Receiving your document, please wait...');
+  await sendText(from, 'Received! Reading your document, please wait...');
+  let ocrResult = null;
   try {
-    const { fullText, keyData } = await extractTextFromImage(mediaObject.id);
-    const preview = fullText.slice(0, 100).replace(/\n/g, ' ');
-    updateSessionData(from, {
-      docs: {
-        ...getSession(from).data.docs,
-        aadhaar: {
-          mediaId:    mediaObject.id,
-          mimeType:   mediaObject.mime_type,
-          receivedAt: new Date().toISOString(),
-          ocrPreview: preview,
-        },
-      },
-    });
-    await sendText(from,
-      'Identity document received!\n\n' +
-      'Text detected: ' + preview
-    );
+    ocrResult = await extractTextFromImage(mediaObject.id);
   } catch (err) {
     console.error('[Phase2] Aadhaar OCR error:', err.message);
-    updateSessionData(from, {
-      docs: {
-        ...getSession(from).data.docs,
-        aadhaar: {
-          mediaId:    mediaObject.id,
-          mimeType:   mediaObject.mime_type,
-          receivedAt: new Date().toISOString(),
-        },
-      },
-    });
-    await sendText(from,
-      'Document received! Text could not be auto-read and has been saved for manual review.'
-    );
   }
-  await pause(700);
-  await requestPAN(from);
-}
 
-// ── Document 2: PAN (optional) ─────────────────────────────────────────────
-async function requestPAN(from) {
-  setSession(from, STATE.AWAIT_PAN);
-  await sendButtons(
-    from,
-    'Document 2 of 3 - PAN Card (Optional)\n\n' +
-    'Please send a clear photo of your PAN Card.\n\n' +
-    'If you do not have a PAN card, tap the button below to skip.',
-    [{ id: 'pan_skip', title: 'Skip - I do not have PAN' }],
-    'PAN Card Upload',
-    'PAN is optional for first-time applicants.'
+  const fullText = ocrResult?.fullText || '';
+  const keyData  = ocrResult?.keyData  || {};
+
+  // Parse name heuristically: first line of text that is all caps or title case
+  const lines     = fullText.split('\n').map(l => l.trim()).filter(Boolean);
+  const nameLine  = lines.find(l => /^[A-Za-z\s]{4,40}$/.test(l)) || '';
+  const idNumber  = keyData.idNumber  || '';
+  const dateFound = keyData.dateFound || '';
+
+  mergeDocs(from, 'aadhaar', {
+    mediaId:        mediaObject.id,
+    mimeType:       mediaObject.mime_type,
+    receivedAt:     new Date().toISOString(),
+    status:         'pending_review',   // pending_review | approved | retry
+    ocrRaw:         fullText.slice(0, 400),
+    ocrName:        nameLine,
+    ocrIdNumber:    idNumber,
+    ocrDob:         dateFound,
+    agentApproved:  false,
+  });
+
+  await sendText(from,
+    'Identity document received!\n\n' +
+    'Your agent is reviewing the details. You will receive a confirmation shortly.'
   );
 }
 
-export async function handlePANUpload(from, mediaObject) {
-  await sendText(from, 'Receiving your PAN card...');
-  try {
-    const { keyData } = await extractTextFromImage(mediaObject.id);
-    updateSessionData(from, {
-      docs: {
-        ...getSession(from).data.docs,
-        pan: {
-          mediaId:    mediaObject.id,
-          mimeType:   mediaObject.mime_type,
-          receivedAt: new Date().toISOString(),
-          panNumber:  keyData.panNumber,
-        },
-      },
-    });
-    const panMsg = keyData.panNumber
-      ? 'PAN Card received! PAN Number detected: ' + keyData.panNumber
-      : 'PAN Card received! Number will be verified manually.';
-    await sendText(from, panMsg);
-  } catch (err) {
-    console.error('[Phase2] PAN OCR error:', err.message);
-    updateSessionData(from, {
-      docs: {
-        ...getSession(from).data.docs,
-        pan: {
-          mediaId:    mediaObject.id,
-          mimeType:   mediaObject.mime_type,
-          receivedAt: new Date().toISOString(),
-        },
-      },
-    });
-    await sendText(from, 'PAN Card received!');
-  }
-  await pause(700);
-  await requestPassbook(from);
-}
-
-export async function handlePANSkip(from) {
-  updateSessionData(from, {
-    docs: { ...getSession(from).data.docs, pan: 'SKIPPED' },
-  });
-  await sendText(from, 'PAN Card skipped. No problem - you can add it later.');
-  await pause(600);
-  await requestPassbook(from);
-}
-
-// ── Document 3: Bank Passbook ──────────────────────────────────────────────
-async function requestPassbook(from) {
+// ══════════════════════════════════════════════════════════════════════════
+// DOCUMENT 2 — Bank Passbook
+// ══════════════════════════════════════════════════════════════════════════
+export async function requestPassbook(from) {
   setSession(from, STATE.AWAIT_PASSBOOK);
   await sendText(from,
-    'Document 3 of 3 - Bank Proof\n\n' +
+    'Document 2 of 3 - Bank Proof\n\n' +
     'Please send a clear photo of:\n' +
     '- Bank Passbook (first page showing account details), OR\n' +
-    '- Bank Statement (last 3 months)\n\n' +
-    'Make sure account holder name, account number, and bank name are visible.'
+    '- Bank Statement (top section with account number)\n\n' +
+    'Make sure account holder name, account number and bank name are clearly visible.'
   );
 }
 
 export async function handlePassbookUpload(from, mediaObject) {
-  await sendText(from, 'Receiving your bank document...');
+  await sendText(from, 'Received! Reading your bank document, please wait...');
+  let ocrResult = null;
   try {
-    const { keyData } = await extractTextFromImage(mediaObject.id);
-    updateSessionData(from, {
-      docs: {
-        ...getSession(from).data.docs,
-        passbook: {
-          mediaId:       mediaObject.id,
-          mimeType:      mediaObject.mime_type,
-          receivedAt:    new Date().toISOString(),
-          accountNumber: keyData.accountNum,
-        },
-      },
-    });
-    const bankMsg = keyData.accountNum
-      ? 'Bank document received! Account number detected: ' + keyData.accountNum
-      : 'Bank document received! Details will be verified manually.';
-    await sendText(from, bankMsg);
+    ocrResult = await extractTextFromImage(mediaObject.id);
   } catch (err) {
     console.error('[Phase2] Passbook OCR error:', err.message);
-    updateSessionData(from, {
-      docs: {
-        ...getSession(from).data.docs,
-        passbook: {
-          mediaId:    mediaObject.id,
-          mimeType:   mediaObject.mime_type,
-          receivedAt: new Date().toISOString(),
-        },
-      },
-    });
-    await sendText(from, 'Bank document received!');
   }
-  await pause(700);
+
+  const fullText = ocrResult?.fullText || '';
+  const keyData  = ocrResult?.keyData  || {};
+
+  const lines      = fullText.split('\n').map(l => l.trim()).filter(Boolean);
+  const nameLine   = lines.find(l => /^[A-Za-z\s]{4,40}$/.test(l)) || '';
+  const bankLine   = lines.find(l => /bank|sbi|pnb|hdfc|icici|axis|canara|union|bob|ubi/i.test(l)) || '';
+  const ifscLine   = lines.find(l => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(l)) || keyData.idNumber || '';
+  const accountNum = keyData.accountNum || '';
+
+  mergeDocs(from, 'passbook', {
+    mediaId:        mediaObject.id,
+    mimeType:       mediaObject.mime_type,
+    receivedAt:     new Date().toISOString(),
+    status:         'pending_review',
+    ocrRaw:         fullText.slice(0, 400),
+    ocrName:        nameLine,
+    ocrAccount:     accountNum,
+    ocrBank:        bankLine,
+    ocrIfsc:        ifscLine,
+    agentApproved:  false,
+  });
+
+  await sendText(from,
+    'Bank document received!\n\n' +
+    'Your agent is reviewing the details. You will receive a confirmation shortly.'
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DOCUMENT 3 — UPI QR Code
+// ══════════════════════════════════════════════════════════════════════════
+export async function requestQRCode(from) {
+  setSession(from, STATE.AWAIT_QR);
+  await sendButtons(
+    from,
+    'Document 3 of 3 - UPI / QR Code\n\n' +
+    'Please send a screenshot or photo of your UPI QR Code.\n\n' +
+    'Where to find it:\n' +
+    '- Open any UPI app (PhonePe, GPay, Paytm)\n' +
+    '- Go to your profile or "Receive Money"\n' +
+    '- Take a screenshot of your QR code\n\n' +
+    'If you do not use a UPI app, tap Skip.',
+    [{ id: 'qr_skip', title: 'Skip - No UPI QR' }],
+    'UPI QR Code',
+    'Digital payments earn you cashback rewards.'
+  );
+}
+
+export async function handleQRUpload(from, mediaObject) {
+  await sendText(from, 'Received! Reading your UPI QR code...');
+  let ocrResult = null;
+  try {
+    ocrResult = await extractTextFromImage(mediaObject.id);
+  } catch (err) {
+    console.error('[Phase2] QR OCR error:', err.message);
+  }
+
+  const fullText = ocrResult?.fullText || '';
+  const keyData  = ocrResult?.keyData  || {};
+
+  // Extract UPI ID — format: handle@bank
+  const upiMatch = fullText.match(/[\w.\-]+@[a-z]+/i);
+  const upiId    = upiMatch?.[0] || keyData.emailFound?.replace('@', '_at_') || '';
+  const phonePay = fullText.match(/\+?[\d]{10}/)?.[0] || '';
+
+  mergeDocs(from, 'qr', {
+    mediaId:        mediaObject.id,
+    mimeType:       mediaObject.mime_type,
+    receivedAt:     new Date().toISOString(),
+    status:         'pending_review',
+    ocrRaw:         fullText.slice(0, 400),
+    ocrUpiId:       upiId,
+    ocrPhone:       phonePay,
+    agentApproved:  false,
+  });
+
+  await sendText(from,
+    'UPI QR code received!\n\n' +
+    'Your agent is reviewing the details. You will receive a confirmation shortly.'
+  );
+}
+
+export async function handleQRSkip(from) {
+  mergeDocs(from, 'qr', { status: 'skipped', agentApproved: true });
+  await sendText(from, 'UPI QR skipped. You can add it later to earn cashback rewards.');
+  await pause(600);
   await allDocsComplete(from);
 }
 
-// ── All documents received ─────────────────────────────────────────────────
-async function allDocsComplete(from) {
-  const { data } = getSession(from);
-  const docs      = data.docs || {};
-  const panStatus = docs.pan === 'SKIPPED' ? 'Skipped' : 'Uploaded';
+// ══════════════════════════════════════════════════════════════════════════
+// AGENT APPROVES A DOCUMENT — sends extracted info back to vendor
+// Called from agentHandler with { docKey, fields }
+// ══════════════════════════════════════════════════════════════════════════
+export async function agentApproveDocument(from, docKey, fields) {
+  // Persist the agent-edited fields and mark approved
+  const existing = getSession(from).data.docs?.[docKey] || {};
+  mergeDocs(from, docKey, {
+    ...existing,
+    ...fields,
+    status:        'approved',
+    agentApproved: true,
+    approvedAt:    new Date().toISOString(),
+  });
+
+  // Build the transparency message back to vendor
+  let msg = '';
+  if (docKey === 'aadhaar') {
+    const idDisplay = fields.ocrIdNumber
+      ? fields.ocrIdNumber.slice(0, -4).replace(/\d/g, 'X') + fields.ocrIdNumber.slice(-4)
+      : 'XXXX-XXXX-XXXX';
+    msg =
+      'Your Identity Document has been verified.\n\n' +
+      'Details confirmed:\n' +
+      'Name: ' + (fields.ocrName || 'As per document') + '\n' +
+      'ID Number: ' + idDisplay + '\n' +
+      (fields.ocrDob ? 'Date of Birth: ' + fields.ocrDob + '\n' : '') +
+      '\nIf any detail is incorrect, please inform your agent.';
+  } else if (docKey === 'passbook') {
+    const accDisplay = fields.ocrAccount
+      ? 'XXXX' + fields.ocrAccount.slice(-4)
+      : 'XXXXXXXX';
+    msg =
+      'Your Bank Document has been verified.\n\n' +
+      'Details confirmed:\n' +
+      'Account Holder: ' + (fields.ocrName    || 'As per document') + '\n' +
+      'Account Number: ' + accDisplay + '\n' +
+      (fields.ocrBank ? 'Bank: ' + fields.ocrBank + '\n' : '') +
+      (fields.ocrIfsc ? 'IFSC: ' + fields.ocrIfsc + '\n' : '') +
+      '\nIf any detail is incorrect, please inform your agent.';
+  } else if (docKey === 'qr') {
+    msg =
+      'Your UPI details have been verified.\n\n' +
+      'Details confirmed:\n' +
+      'UPI ID: ' + (fields.ocrUpiId || 'As registered') + '\n' +
+      '\nYour repayments and cashback will be linked to this UPI ID.';
+  }
+
+  if (msg) await sendText(from, msg);
+
+  // Check if all 3 docs are now approved → move to next phase
+  const allDocs = getSession(from).data.docs || {};
+  const allApproved =
+    allDocs.aadhaar?.agentApproved &&
+    allDocs.passbook?.agentApproved &&
+    (allDocs.qr?.agentApproved || allDocs.qr?.status === 'skipped');
+
+  if (allApproved) {
+    await pause(700);
+    await allDocsComplete(from);
+  } else {
+    // Prompt for the next pending doc
+    if (!allDocs.passbook) {
+      await requestPassbook(from);
+    } else if (!allDocs.qr) {
+      await requestQRCode(from);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AGENT REQUESTS RETRY
+// ══════════════════════════════════════════════════════════════════════════
+export async function agentRetryDocument(from, docKey) {
+  const existing = getSession(from).data.docs?.[docKey] || {};
+  mergeDocs(from, docKey, { ...existing, status: 'retry' });
+
+  const docNames = {
+    aadhaar:  'Aadhaar Card or Voter ID',
+    passbook: 'Bank Passbook',
+    qr:       'UPI QR Code',
+  };
   await sendText(from,
-    'All documents received!\n\n' +
-    'Identity (Aadhaar/Voter ID): Uploaded\n' +
-    'PAN Card: ' + panStatus + '\n' +
-    'Bank Passbook/Statement: Uploaded\n\n' +
+    'The photo of your ' + (docNames[docKey] || 'document') + ' was not clear enough to read.\n\n' +
+    'Please resend a clearer photo:\n' +
+    '- Good lighting, no shadows\n' +
+    '- All 4 corners of the document visible\n' +
+    '- Hold the camera steady'
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ALL DOCS COMPLETE
+// ══════════════════════════════════════════════════════════════════════════
+async function allDocsComplete(from) {
+  await sendText(from,
+    'All documents have been reviewed and verified!\n\n' +
+    'Identity Proof: Verified\n' +
+    'Bank Document: Verified\n' +
+    'UPI Details: ' + (getSession(from).data.docs?.qr?.status === 'skipped' ? 'Skipped' : 'Verified') + '\n\n' +
     'Moving to the final step - Video KYC.'
   );
   await pause(900);
-  const { startVideoKYC } = await import('./phase3_videoKYC.js');
-  await startVideoKYC(from);
+  const { startProfiling } = await import('./phase3_profiling.js');
+  await startProfiling(from);
 }
 
-// ── Wrong-input guard ──────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+// WRONG-INPUT GUARD
+// ══════════════════════════════════════════════════════════════════════════
 export async function remindToUploadDocument(from, currentState) {
   const names = {
     [STATE.AWAIT_AADHAAR]:  'Aadhaar Card or Voter ID',
-    [STATE.AWAIT_PAN]:      'PAN Card',
-    [STATE.AWAIT_PASSBOOK]: 'Bank Passbook or Statement',
+    [STATE.AWAIT_PASSBOOK]: 'Bank Passbook',
+    [STATE.AWAIT_QR]:       'UPI QR Code',
   };
   await sendText(from,
-    'Please upload a photo of your ' + (names[currentState] || 'document') + '.\n\n' +
+    'Please send a photo of your ' + (names[currentState] || 'document') + '.\n\n' +
     'To send a photo:\n' +
     '1. Tap the attachment icon\n' +
     '2. Select Camera or Gallery\n' +
-    '3. Take or choose a clear photo of the document\n' +
-    '4. Tap Send\n\n' +
-    'You can also send a PDF file.'
+    '3. Take or choose a clear photo\n' +
+    '4. Tap Send'
   );
 }

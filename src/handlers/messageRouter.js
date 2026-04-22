@@ -20,19 +20,30 @@ import { sendText }             from '../services/whatsappService.js';
 import { startOnboarding,
          handleOnboardingReply }          from './phase0_onboarding.js';
 import { handlePhoneInput,
+         handleDbPathChoice,
+         handleOtpInput,
          handleUPIInput,
          handleConsentReply,
-         handleEligibilityReply }         from './phase1_loanCustomization.js';
+         handleEligibilityReply,
+         handleFinalEligibilityProceed }  from './phase1_loanCustomization.js';
 import { handleAadhaarUpload,
          handlePANUpload,
          handlePANSkip,
          handlePassbookUpload,
+         handleQRUpload,
+         handleQRSkip,
          remindToUploadDocument }         from './phase2_documentUpload.js';
-import { handleKYCReady,
+import { handleReferencesInput,
+         handleFinancialConsentReply,
+         handleLoanAmountInput,
+         handleLoanConfirm }              from './phase3_profiling.js';
+import { handleKycVendorReady,
+         handleKycVendorNotReady,
+         handleKYCReady,
          handleKYCDone,
          handleKYCRetry,
          handleKYCHelp,
-         handleKYCTextReminder }          from './phase3_videoKYC.js';
+         handleKYCTextReminder }          from './phase4_videoKYC.js';
 import { handleRepaymentSelection,
          handleRepaymentInput,
          showRepaymentMenu }              from './phase4_repayment.js';
@@ -95,9 +106,24 @@ async function handleTextMessage(from, state, text) {
 
   switch (state) {
     // Phase 1 — text input states
-    case STATE.COLLECT_PHONE:
-      await handlePhoneInput(from, text);
+    case STATE.COLLECT_PHONE: {
+      const { data } = getSession(from);
+      if (data.otpSent && !data.otpVerified) {
+        // Vendor is typing their OTP
+        if (text.toLowerCase() === 'resend') {
+          await handlePhoneInput(from, data.phone || text);
+        } else {
+          await handleOtpInput(from, text);
+        }
+      } else if (data.awaitingPhoneEntry || data.dbPath) {
+        // Vendor is typing their phone number
+        await handlePhoneInput(from, text);
+      } else {
+        // Default — ask for phone
+        await handlePhoneInput(from, text);
+      }
       break;
+    }
 
     case STATE.COLLECT_UPI:
       await handleUPIInput(from, text);
@@ -107,10 +133,25 @@ async function handleTextMessage(from, state, text) {
     case STATE.AWAIT_AADHAAR:
     case STATE.AWAIT_PAN:
     case STATE.AWAIT_PASSBOOK:
+    case STATE.AWAIT_QR:
       await remindToUploadDocument(from, state);
       break;
 
-    // Phase 3 — KYC pending; remind user
+    // Phase 3 — Profiling: references and financial consent
+    case STATE.PROFILING_REFS:
+      await handleReferencesInput(from, text);
+      break;
+
+    case STATE.PROFILING_FINANCE:
+      await sendText(from, 'Please tap one of the buttons above to consent to the financial check.');
+      break;
+
+    case STATE.LOAN_SELECTION:
+      await handleLoanAmountInput(from, text);
+      break;
+
+    // Phase 4 — KYC pending; remind user
+    case STATE.KYC_READINESS:
     case STATE.VIDEO_KYC:
     case STATE.AWAITING_APPROVAL:
       await handleKYCTextReminder(from);
@@ -168,13 +209,23 @@ async function handleButtonMessage(from, state, buttonId) {
     return;
   }
 
+  // ── Phase 1: DB path choice (Aadhaar-linked vs Bank-linked) ────────────
+  if (buttonId === 'path_aadhaar' || buttonId === 'path_bank') {
+    await handleDbPathChoice(from, buttonId);
+    return;
+  }
+
   // ── Phase 1: Consent + Eligibility ──────────────────────────────────────
   if (buttonId === 'consent_yes' || buttonId === 'consent_no') {
     await handleConsentReply(from, buttonId);
     return;
   }
   if (buttonId === 'eligibility_proceed' || buttonId === 'eligibility_exit') {
-    await handleEligibilityReply(from, buttonId);
+    if (state === STATE.ELIGIBILITY_RESULT && buttonId === 'eligibility_proceed') {
+      await handleFinalEligibilityProceed(from);
+    } else {
+      await handleEligibilityReply(from, buttonId);
+    }
     return;
   }
 
@@ -188,8 +239,23 @@ async function handleButtonMessage(from, state, buttonId) {
     return;
   }
 
-  // ── Phase 3: KYC ─────────────────────────────────────────────────────────
-  if (buttonId === 'kyc_ready') { await handleKYCReady(from); return; }
+  // ── Phase 2: QR skip ─────────────────────────────────────────────────────
+  if (buttonId === 'qr_skip') { await handleQRSkip(from); return; }
+
+  // ── Phase 3: Profiling — financial consent + loan confirm ──────────────────
+  if (buttonId === 'finance_yes' || buttonId === 'finance_no') {
+    await handleFinancialConsentReply(from, buttonId);
+    return;
+  }
+  if (buttonId === 'loan_confirm' || buttonId === 'loan_change') {
+    await handleLoanConfirm(from, buttonId);
+    return;
+  }
+
+  // ── Phase 4: KYC readiness + flow ─────────────────────────────────────────
+  if (buttonId === 'kyc_vendor_ready') { await handleKycVendorReady(from);    return; }
+  if (buttonId === 'kyc_vendor_later') { await handleKycVendorNotReady(from); return; }
+  if (buttonId === 'kyc_ready')  { await handleKYCReady(from); return; }
   if (buttonId === 'kyc_done')  { await handleKYCDone(from);  return; }
   if (buttonId === 'kyc_retry') { await handleKYCRetry(from); return; }
   if (buttonId === 'kyc_help')  { await handleKYCHelp(from);  return; }
@@ -227,6 +293,9 @@ async function handleMediaMessage(from, state, mediaObject) {
       break;
     case STATE.AWAIT_PASSBOOK:
       await handlePassbookUpload(from, mediaObject);
+      break;
+    case STATE.AWAIT_QR:
+      await handleQRUpload(from, mediaObject);
       break;
     default:
       await sendText(from,
