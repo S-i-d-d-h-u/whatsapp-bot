@@ -429,15 +429,15 @@ async function agentAction(action, value = '') {
 // LOGIN
 // ══════════════════════════════════════════════════════════════
 function agentLogin() {
-  const phone = document.getElementById('agentPhone').value.trim();
+  const phone = document.getElementById('agentPhone').value.trim() || '0000000000';
   const pass  = document.getElementById('agentPass').value.trim();
-  if (!phone || phone.length < 10) { toast('Enter a valid phone number', false); return; }
-  if (!pass) { toast('Enter your password', false); return; }
-  agentNum = phone;
-  document.getElementById('agentBadge').textContent = '+91 ' + phone.slice(-10);
+  if (!pass) { alert('Enter your password'); return; }
+  agentNum = phone || 'Agent';
+  const badge = phone.length >= 10 ? '+91 ' + phone.slice(-10) : 'Agent';
+  document.getElementById('agentBadge').textContent = badge;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
-  addLog('Agent logged in: ' + phone);
+  addLog('Agent logged in');
   renderPhase(0);
 }
 
@@ -1196,10 +1196,12 @@ async function approveDisbursement() {
 // ══════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════
-// Auto-login if pass param provided
+// Auto-login if pass param is in URL — skip login screen entirely
 const autoPass = new URLSearchParams(location.search).get('pass');
 if (autoPass) {
   document.getElementById('agentPass').value = autoPass;
+  document.getElementById('agentPhone').value = '0000000000';
+  agentLogin();
 }
 </script>
 </body>
