@@ -209,20 +209,16 @@ export async function agentApproveKYC(from) {
 }
 
 
-// handleKYCReady — vendor taps 'I am ready' on reminder; re-sends link or notifies pending
+// handleKYCReady — vendor taps ready on reminder; re-sends link or notifies agent pending
 export async function handleKYCReady(from) {
   const { data } = getSession(from);
-  if (data.kyc?.link) {
+  if (data.kyc && data.kyc.link) {
     const expired = Date.now() > new Date(data.kyc.expiryTime || 0).getTime();
     if (expired) {
       await startVideoKYC(from);
     } else {
       await sendButtons(from,
-        'Join your Video KYC call here:
-' + data.kyc.link + '
-
-' +
-        'Have your ID card ready. Tap below when the call is done.',
+        'Join your Video KYC call here: ' + data.kyc.link + '. Have your ID card ready.',
         [
           { id: 'kyc_done',  title: 'I have completed KYC' },
           { id: 'kyc_retry', title: 'Get a new link' },
@@ -232,10 +228,7 @@ export async function handleKYCReady(from) {
       );
     }
   } else {
-    await sendText(from,
-      'Your KYC officer is preparing the video call link.
-Please stay on this chat — it will arrive shortly.'
-    );
+    await sendText(from, 'Your KYC officer is preparing the video call link. Please stay on this chat.');
   }
 }
 
