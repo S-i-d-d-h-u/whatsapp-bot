@@ -318,3 +318,27 @@ export async function remindToUploadDocument(from, currentState) {
     '4. Tap Send'
   );
 }
+
+// ── Backward-compat stubs (PAN replaced by QR in new flow) ────────────────
+// messageRouter and agentHandler still import these — keep them exported
+// so old sessions mid-flow don't crash.
+export async function handlePANUpload(from, mediaObject) {
+  // PAN is no longer collected — treat as passbook if in wrong state,
+  // otherwise skip straight to QR
+  await sendText(from,
+    'PAN Card is no longer required for this application.\n\n' +
+    'Please continue to the next step.'
+  );
+  await requestQRCode(from);
+}
+
+export async function handlePANSkip(from) {
+  const { data } = getSession(from);
+  const docs = data.docs || {};
+  // If passbook already approved, move to QR; otherwise request passbook first
+  if (docs.passbook?.agentApproved) {
+    await requestQRCode(from);
+  } else {
+    await requestPassbook(from);
+  }
+}
