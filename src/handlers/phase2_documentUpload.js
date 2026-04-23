@@ -137,18 +137,15 @@ export async function handlePassbookUpload(from, mediaObject) {
 // ══════════════════════════════════════════════════════════════════════════
 export async function requestQRCode(from) {
   setSession(from, STATE.AWAIT_QR);
-  await sendButtons(
-    from,
+  await sendText(from,
     'Document 3 of 3 - UPI / QR Code\n\n' +
-    'Please send a screenshot or photo of your UPI QR Code.\n\n' +
-    'Where to find it:\n' +
-    '- Open any UPI app (PhonePe, GPay, Paytm)\n' +
-    '- Go to your profile or "Receive Money"\n' +
-    '- Take a screenshot of your QR code\n\n' +
-    'If you do not use a UPI app, tap Skip.',
-    [{ id: 'qr_skip', title: 'Skip - No UPI QR' }],
-    'UPI QR Code',
-    'Digital payments earn you cashback rewards.'
+    'A UPI QR code is required to receive your loan disbursement and earn cashback rewards.\n\n' +
+    'How to get your QR code:\n' +
+    '1. Open any UPI app (PhonePe, GPay, Paytm, BHIM)\n' +
+    '2. Go to your profile or tap "Receive Money"\n' +
+    '3. Take a screenshot of your QR code\n' +
+    '4. Send the screenshot here\n\n' +
+    'If you do not have a UPI app, please install BHIM from the Play Store or App Store — it is free and takes 2 minutes to set up.'
   );
 }
 
@@ -187,10 +184,12 @@ export async function handleQRUpload(from, mediaObject) {
 }
 
 export async function handleQRSkip(from) {
-  mergeDocs(from, 'qr', { status: 'skipped', agentApproved: true });
-  await sendText(from, 'UPI QR skipped. You can add it later to earn cashback rewards.');
-  await pause(600);
-  await allDocsComplete(from);
+  // QR is now mandatory — redirect back to the request
+  await sendText(from,
+    'A UPI QR code is required to complete your PM SVANidhi application.\n\n' +
+    'Please send a screenshot of your UPI QR code from PhonePe, GPay, Paytm, or BHIM.'
+  );
+  await requestQRCode(from);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -248,7 +247,7 @@ export async function agentApproveDocument(from, docKey, fields) {
   const allApproved =
     allDocs.aadhaar?.agentApproved &&
     allDocs.passbook?.agentApproved &&
-    (allDocs.qr?.agentApproved || allDocs.qr?.status === 'skipped');
+    allDocs.qr?.agentApproved;
 
   if (allApproved) {
     await pause(700);

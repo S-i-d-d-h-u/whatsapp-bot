@@ -5,7 +5,7 @@ import { setSession, getSession,
          updateSessionData, STATE }         from '../utils/sessionManager.js';
 import crypto                               from 'crypto';
 
-const KYC_BASE   = process.env.KYC_BASE_URL || 'https://meet.pmsvanidhi.gov.in';
+const KYC_BASE   = process.env.KYC_BASE_URL || 'https://meet.jit.si';
 const KYC_IMG    = process.env.KYC_IMG_URL  || '';
 const EXPIRY_MIN = 30;
 const pause      = ms => new Promise(r => setTimeout(r, ms));
@@ -70,8 +70,8 @@ export async function startVideoKYC(from) {
   // Called by agent from dashboard after vendor confirms readiness
   setSession(from, STATE.VIDEO_KYC);
 
-  const roomId     = 'kyc-' + crypto.randomBytes(5).toString('hex');
-  const link       = KYC_BASE + '/live-kyc-' + roomId;
+  const roomId     = 'SVANidhi' + crypto.randomBytes(5).toString('hex').toUpperCase();
+  const link       = KYC_BASE + '/' + roomId;
   const expiryTime = new Date(Date.now() + EXPIRY_MIN * 60 * 1000);
 
   updateSessionData(from, {

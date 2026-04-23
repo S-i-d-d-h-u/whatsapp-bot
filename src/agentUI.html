@@ -326,6 +326,9 @@ input[type=range]{width:100%;accent-color:var(--green)}
     <div style="display:flex;align-items:center;gap:6px">
       <span class="topbar-agent" id="agentBadge">Agent</span>
       <span id="syncBadge" style="display:none"><span id="syncDot"></span><span id="syncLabel">Live</span></span>
+      <button id="refreshBtn" onclick="manualRefresh()"
+        style="background:rgba(255,255,255,.15);border:none;border-radius:20px;color:#fff;
+               font-size:11px;padding:3px 10px;cursor:pointer;display:none">↺ Refresh</button>
     </div>
   </div>
 
@@ -358,6 +361,22 @@ input[type=range]{width:100%;accent-color:var(--green)}
     <div class="card" style="text-align:center;padding:32px 16px;color:var(--text-2)">
       <div style="font-size:28px;margin-bottom:8px">📋</div>
       <div style="font-size:13px">Load a vendor to begin</div>
+    </div>
+  </div>
+
+  <!-- Sticky agent chat input — always visible once vendor loaded -->
+  <div id="agentChatBar" style="display:none;background:#fff;border-top:1.5px solid var(--border);
+       padding:8px 12px;position:sticky;bottom:0;z-index:50">
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="text" id="agentMsgInput" placeholder="Type a message to vendor..."
+             style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:20px;
+                    font-size:13px;outline:none"
+             onkeydown="if(event.key==='Enter'){sendAgentMessage()}"
+             onfocus="this.style.borderColor='var(--green-mid)'"
+             onblur="this.style.borderColor='var(--border)'"/>
+      <button onclick="sendAgentMessage()"
+              style="background:var(--green);border:none;border-radius:50%;width:36px;height:36px;
+                     color:#fff;font-size:16px;cursor:pointer;flex-shrink:0">↑</button>
     </div>
   </div>
 
@@ -486,6 +505,7 @@ async function loadVendor() {
     }
     renderPhase(currentPhase);
     startPolling();
+    document.getElementById('agentChatBar').style.display = 'block';
     toast('Vendor loaded — live sync active');
   } catch (e) {
     toast('Could not load vendor', false);
@@ -714,14 +734,28 @@ function renderPhase1(area, bar, action) {
          style="display:${['consent','fetched','eligibility'].includes(p1Step) ? 'block' : 'none'}">
       <div class="card">
         <div class="card-title">📑 Data access consent</div>
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Read to vendor: <em>"May we fetch your details from the
-          ${d.dbPath === 'bank' ? 'Bank database' : 'Aadhaar (UIDAI) database'}
-          to verify identity and check eligibility?"</em>
-        </p>
+        <!-- Mirror: shows exactly what vendor received on WhatsApp -->
+        <div style="background:var(--green-pale);border:1px solid #c3e6d4;border-radius:8px;
+                    padding:10px 12px;font-size:11px;color:var(--text-2);margin-bottom:10px">
+          <div style="font-size:10px;font-weight:600;color:var(--green);margin-bottom:5px">
+            📱 Message sent to vendor
+          </div>
+          <div style="font-size:12px;color:var(--text);line-height:1.5">
+            "To check your eligibility, we need your permission to securely fetch your details from the
+            <strong>${d.dbPath === 'bank' ? 'Bank Account database' : 'Aadhaar (UIDAI) database'}</strong>.
+            Do you agree to this secure data access?"
+          </div>
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <span style="background:var(--green);color:#fff;border-radius:4px;padding:2px 8px;font-size:10px">I Agree</span>
+            <span style="background:var(--red-lt);color:var(--red);border-radius:4px;padding:2px 8px;font-size:10px">I Disagree</span>
+          </div>
+        </div>
         ${d.consentGiven
-          ? `<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:8px">✅ Consent recorded</div>`
+          ? `<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:8px">✅ Vendor gave consent</div>`
           : ''}
+        <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">
+          Record vendor's response below:
+        </div>
         <div class="btn-row">
           <button class="btn btn-green" onclick="giveConsent()">✓ Vendor agrees</button>
           <button class="btn btn-red"   onclick="agentAction('decline_consent').then(() => renderPhase(1))">✗ Declined</button>
@@ -902,7 +936,7 @@ const DOC_DEFS = [
       { key: 'ocrUpiId', label: 'UPI ID',      placeholder: 'e.g. name@okaxis' },
       { key: 'ocrPhone', label: 'Linked Phone', placeholder: '10-digit number' },
     ],
-    skippable: true,
+    skippable: false,
   },
 ];
 
@@ -1006,7 +1040,6 @@ function renderDocCard(def, docData, idx, activeIdx) {
               💬 Remind vendor to send photo
             </button>
           </div>
-          ${def.skippable ? `<button class="btn btn-gray btn-full" style="margin-top:6px" onclick="agentSkipQR()">⏭️ Skip — no UPI QR</button>` : ''}
         ` : ''}
       </div>`;
   }
@@ -1056,10 +1089,6 @@ function renderDocCard(def, docData, idx, activeIdx) {
           🔄 Retry
         </button>
       </div>
-      ${def.skippable ? `
-        <button class="btn btn-gray btn-full" style="margin-top:6px" onclick="agentSkipQR()">
-          ⏭️ Skip — vendor has no UPI QR
-        </button>` : ''}
     </div>`;
 }
 
@@ -1110,16 +1139,7 @@ async function reopenDoc(docKey) {
   toast('You can re-edit by scrolling to that document', true);
 }
 
-async function agentSkipQR() {
-  const ok = await agentAction('approve_document', JSON.stringify({
-    docKey: 'qr', fields: { ocrUpiId: 'SKIPPED', ocrPhone: '' }
-  }));
-  if (ok) {
-    toast('QR / UPI skipped');
-    addLog('QR skipped by agent');
-    renderPhase(2);
-  }
-}
+// agentSkipQR removed — QR/UPI is mandatory for PM SVANidhi disbursement
 
 
 // ══════════════════════════════════════════════════════════════
@@ -1422,36 +1442,44 @@ function renderPhase4(area, bar, action) {
            </button>`}
     </div>
 
-    <!-- STAGE 2: How-to image + link -->
+    <!-- STAGE 2: Jitsi video call embed + link to vendor -->
     <div class="card ${stage >= 2 ? 'card-green' : ''}"
          style="opacity:${stage >= 1 ? 1 : 0.4};pointer-events:${stage >= 1 ? 'auto' : 'none'}">
-      <div class="card-title">📷 Stage 2 — Instructions &amp; KYC link</div>
+      <div class="card-title">📹 Stage 2 — Join call &amp; send link to vendor</div>
       ${stage >= 2 && kyc.link ? `
         <div style="font-size:12px;color:var(--green);margin-bottom:8px;font-weight:600">
-          ✅ How-to-KYC image sent · Link delivered
+          ✅ How-to-KYC image sent · Link sent to vendor
         </div>
-        <div style="background:var(--gray-lt);border-radius:7px;padding:8px 10px;
-                    font-size:11px;font-family:monospace;word-break:break-all;color:var(--text-2)">
-          ${kyc.link}
-        </div>
-        <div style="font-size:10px;color:var(--text-2);margin-top:4px">
-          Generated ${kyc.generatedAt ? new Date(kyc.generatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : ''}
-        </div>
-      ` : `
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Once vendor confirms readiness, the bot sends the How-to-KYC image.<br/>
-          Then initiate the video call and send the link to the vendor.
-        </p>
-        <div id="kycLinkPreview" style="display:none;margin-bottom:8px">
-          <div class="field">
-            <label>Video call link (auto-generated)</label>
-            <input type="text" id="kycLinkInput" readonly
-                   style="font-size:11px;font-family:monospace;color:var(--text-2)"
-                   value="https://meet.pmsvanidhi.gov.in/live-kyc-${' + Math.random().toString(36).slice(2,8) + '}"/>
+        <!-- Agent joins via embedded Jitsi -->
+        <div style="margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px">
+            Your video call (agent view):
+          </div>
+          <div id="kycIframeWrap" style="border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+            <iframe
+              src="${kyc.link}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&userInfo.displayName=SVANidhi+Agent"
+              allow="camera; microphone; fullscreen; display-capture"
+              style="width:100%;height:260px;border:none"
+              id="kycIframe">
+            </iframe>
           </div>
         </div>
-        <button class="btn btn-green btn-full" onclick="generateAndSendLink()">
-          🔗 Generate &amp; send KYC link to vendor
+        <div style="background:var(--gray-lt);border-radius:6px;padding:6px 10px;
+                    font-size:10px;font-family:monospace;word-break:break-all;color:var(--text-2);margin-bottom:6px">
+          ${kyc.link}
+        </div>
+        <button class="btn btn-gray btn-full" onclick="resendKycLink()" style="font-size:11px">
+          🔁 Resend link to vendor
+        </button>
+      ` : `
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
+          Click below to start the video call. The system will:<br/>
+          1. Generate a unique Jitsi meeting room<br/>
+          2. Open it here so you join first<br/>
+          3. Send the same link to the vendor on WhatsApp
+        </p>
+        <button class="btn btn-green btn-full" style="padding:14px" onclick="generateAndSendLink()">
+          📹 Start video call &amp; send link to vendor
         </button>
       `}
     </div>
@@ -1504,10 +1532,20 @@ async function sendReadinessCheck() {
 async function generateAndSendLink() {
   const ok = await agentAction('start_kyc');
   if (ok) {
-    toast('How-to-KYC image + link sent to vendor');
-    addLog('KYC link sent');
+    toast('Video call started — link sent to vendor');
+    addLog('KYC link generated and sent');
     renderPhase(4);
   }
+}
+
+async function resendKycLink() {
+  const link = vendor.data?.kyc?.link;
+  if (!link) { toast('No link to resend', false); return; }
+  const ok = await agentAction('send_custom_message',
+    'Your Video KYC link: ' + link +
+    '\n\nTap the link to join the video call. Have your Aadhaar or Voter ID ready.\nThe call takes 3 to 5 minutes.'
+  );
+  if (ok) { toast('Link resent to vendor'); addLog('KYC link resent'); }
 }
 
 async function approveKyc() {
@@ -2290,6 +2328,31 @@ function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(syncVendorState, 4000);
   document.getElementById('syncBadge').style.display = 'inline-flex';
+  document.getElementById('refreshBtn').style.display = 'inline-block';
+}
+
+// ── Manual refresh ────────────────────────────────────────────────────────
+async function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  if (btn) { btn.textContent = '↺ ...'; btn.disabled = true; }
+  await syncVendorState();
+  renderPhase(currentPhase);
+  if (btn) { btn.textContent = '↺ Refresh'; btn.disabled = false; }
+  toast('Refreshed');
+}
+
+// ── Agent chat — send message to vendor on WhatsApp ───────────────────────
+async function sendAgentMessage() {
+  const input = document.getElementById('agentMsgInput');
+  const msg = input?.value.trim();
+  if (!msg) return;
+  if (!vendor.phone) { toast('Load a vendor first', false); return; }
+  input.value = '';
+  input.disabled = true;
+  const ok = await agentAction('send_custom_message', msg);
+  input.disabled = false;
+  input.focus();
+  if (ok) addLog('Sent to vendor: ' + msg.slice(0, 40) + (msg.length > 40 ? '...' : ''));
 }
 
 function stopPolling() {
