@@ -627,7 +627,9 @@ function renderPhase1(area, bar, action) {
 
   if (s === 'CONSENT_GATE')        p1Step = 'consent';
   else if (s === 'ELIGIBILITY_RESULT') {
-    p1Step = d.fetchedName ? 'eligibility' : 'fetched';
+    // Only advance to 'eligibility' if agent explicitly clicked proceed
+    // Otherwise show 'fetched' so agent confirms DB data first
+    if (p1Step !== 'eligibility') p1Step = d.fetchedName ? 'fetched' : 'fetched';
   }
   else if (d.otpSent && !d.otpVerified) p1Step = 'otp';
   else if (d.dbPath && !d.phone)        p1Step = 'phone';
@@ -933,8 +935,7 @@ const DOC_DEFS = [
     emoji:   '📱',
     state:   'AWAIT_QR',
     fields:  [
-      { key: 'ocrUpiId', label: 'UPI ID',      placeholder: 'e.g. name@okaxis' },
-      { key: 'ocrPhone', label: 'Linked Phone', placeholder: '10-digit number' },
+      { key: 'ocrUpiId', label: 'UPI ID', placeholder: 'e.g. name@okaxis or 9876543210@ybl' },
     ],
     skippable: false,
   },
@@ -1056,19 +1057,19 @@ function renderDocCard(def, docData, idx, activeIdx) {
         ${ts ? `<span style="font-size:10px;color:var(--text-2);font-weight:400">${ts}</span>` : ''}
       </div>
 
-      <!-- OCR raw preview strip -->
-      ${ocrRaw ? `
-        <div style="background:var(--gray-lt);border-radius:7px;padding:7px 10px;font-size:10px;
-                    color:var(--text-2);margin-bottom:10px;max-height:52px;overflow:hidden;
-                    line-height:1.5;font-family:monospace">
-          ${ocrRaw.slice(0, 160).replace(/\n/g, ' · ')}...
-        </div>` : `
-        <div class="ocr-img">
-          <span style="font-size:18px">📄</span>
-          <span style="margin-top:4px">Image received — OCR unavailable</span>
-        </div>`}
+      <!-- Approve/Retry always at TOP so they are always visible -->
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn btn-green" style="flex:1;font-size:13px;padding:10px"
+                onclick="approveDoc('${def.key}')">
+          ✓ Approve &amp; notify vendor
+        </button>
+        <button class="btn btn-amber" style="flex:0 0 auto;font-size:12px"
+                onclick="retryDoc('${def.key}')">
+          🔄 Retry
+        </button>
+      </div>
 
-      <!-- Editable OCR fields -->
+      <!-- Editable OCR fields — edit before approving if needed -->
       <div id="ocrFields-${def.key}">
         ${def.fields.map(f => `
           <div class="ocr-field">
@@ -1080,15 +1081,21 @@ function renderDocCard(def, docData, idx, activeIdx) {
           </div>`).join('')}
       </div>
 
-      <!-- Action buttons -->
-      <div style="display:flex;gap:6px;margin-top:10px">
-        <button class="btn btn-green" style="flex:1" onclick="approveDoc('${def.key}')">
-          ✓ Approve &amp; notify vendor
-        </button>
-        <button class="btn btn-amber" style="flex:0 0 auto" onclick="retryDoc('${def.key}')">
-          🔄 Retry
-        </button>
-      </div>
+      <!-- OCR raw — collapsed by default, expandable -->
+      ${ocrRaw ? `
+        <details style="margin-top:8px">
+          <summary style="font-size:10px;color:var(--text-2);cursor:pointer;user-select:none">
+            View raw OCR text
+          </summary>
+          <div style="background:var(--gray-lt);border-radius:6px;padding:6px 8px;font-size:10px;
+                      color:var(--text-2);margin-top:4px;max-height:80px;overflow-y:auto;
+                      line-height:1.5;font-family:monospace;word-break:break-all">
+            ${ocrRaw.slice(0, 300).replace(/\n/g, ' · ')}
+          </div>
+        </details>` : `
+        <div style="font-size:11px;color:var(--text-2);margin-top:6px">
+          📄 Image received — OCR could not extract text. Edit the fields above manually.
+        </div>`}
     </div>`;
 }
 
@@ -1399,17 +1406,16 @@ function renderPhase4(area, bar, action) {
   const d    = vendor.data || {};
   const kyc  = d.kyc || {};
 
-  // Derive KYC stage from session state + data flags
+  // Derive KYC stage — vendor no longer taps done, agent approves directly
   const stage =
-    kyc.agentApproved              ? 4 :
-    kyc.completed                  ? 3 :
+    kyc.agentApproved              ? 3 :
     kyc.link                       ? 2 :
     vendor.state === 'VIDEO_KYC'   ? 2 :
     vendor.state === 'KYC_READINESS' ? 1 :
     0;  // not started
 
-  const stageLabels = ['Not started', 'Readiness sent', 'Link sent', 'KYC done', 'Approved'];
-  const stageColors = ['var(--border)', 'var(--amber)', 'var(--blue)', 'var(--amber)', 'var(--green)'];
+  const stageLabels = ['Not started', 'Readiness sent', 'Call in progress', 'Approved'];
+  const stageColors = ['var(--border)', 'var(--amber)', 'var(--green)', 'var(--green)'];
 
   area.innerHTML = `
     <!-- KYC stage progress bar -->
@@ -1422,9 +1428,9 @@ function renderPhase4(area, bar, action) {
         </span>
       </div>
       <div style="display:flex;gap:3px">
-        ${[1,2,3,4].map(i => `
+        ${[1,2,3].map(i => `
           <div style="flex:1;height:5px;border-radius:3px;
-               background:${i <= stage ? stageColors[Math.min(stage, 4)] : 'var(--border)'}"></div>
+               background:${i <= stage ? stageColors[Math.min(stage, 3)] : 'var(--border)'}"></div>
         `).join('')}
       </div>
     </div>
@@ -1484,37 +1490,22 @@ function renderPhase4(area, bar, action) {
       `}
     </div>
 
-    <!-- STAGE 3: Waiting for vendor to complete -->
+    <!-- STAGE 3: Agent approves — unlocked as soon as link is sent -->
     <div class="card ${stage >= 3 ? 'card-green' : ''}"
          style="opacity:${stage >= 2 ? 1 : 0.4};pointer-events:${stage >= 2 ? 'auto' : 'none'}">
-      <div class="card-title">📹 Stage 3 — Video call in progress</div>
+      <div class="card-title">✅ Stage 3 — Agent approval</div>
       ${stage >= 3
-        ? `<div style="font-size:12px;color:var(--green);font-weight:600">✅ Vendor completed KYC</div>
-           ${kyc.completedAt ? `<div style="font-size:10px;color:var(--text-2);margin-top:3px">
-             At ${new Date(kyc.completedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
-           </div>` : ''}`
-        : `<p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-             Waiting for vendor to join and complete the call.<br/>
-             Vendor will tap "I have completed KYC" when done.
-           </p>
-           <button class="btn btn-gray btn-full" onclick="nudgeKyc()">
-             💬 Remind vendor to join the call
-           </button>`}
-    </div>
-
-    <!-- STAGE 4: Agent approval -->
-    <div class="card ${stage >= 4 ? 'card-green' : ''}"
-         style="opacity:${stage >= 3 ? 1 : 0.4};pointer-events:${stage >= 3 ? 'auto' : 'none'}">
-      <div class="card-title">✅ Stage 4 — Agent approval</div>
-      ${stage >= 4
         ? `<div style="font-size:12px;color:var(--green);font-weight:600">
              ✅ KYC approved — loan disbursement triggered
            </div>`
         : `<p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-             Once you have verified the vendor's identity on the video call, click Approve to trigger loan disbursement.
+             Conduct the video call. Once you have verified the vendor's identity, click Approve.
            </p>
-           <button class="btn btn-green btn-full" style="padding:14px" onclick="approveKyc()">
+           <button class="btn btn-green btn-full" style="padding:14px;margin-bottom:8px" onclick="approveKyc()">
              ✅ Approve KYC — trigger loan approval
+           </button>
+           <button class="btn btn-gray btn-full" onclick="nudgeKyc()" style="font-size:12px">
+             💬 Resend link to vendor
            </button>`}
     </div>
   `;

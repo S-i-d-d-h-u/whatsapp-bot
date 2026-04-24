@@ -34,22 +34,11 @@ export async function askKycReadiness(from) {
 }
 
 export async function handleKycVendorReady(from) {
-  // Vendor confirmed readiness — send instructional image + brief tips
-  // Agent will then send the actual link from dashboard
-  if (KYC_IMG) {
-    await sendImage(from, KYC_IMG, 'How to complete your Video KYC').catch(() => {});
-    await pause(500);
-  }
-
+  // Vendor confirmed readiness — tell them the link is coming
   setSession(from, STATE.VIDEO_KYC);
   await sendText(from,
-    'Great! Your KYC officer will send you a video call link shortly.\n\n' +
-    'During the call:\n' +
-    '1. Hold your ID card next to your face when asked\n' +
-    '2. State your name and address clearly\n' +
-    '3. Confirm your loan amount\n\n' +
-    'The officer will NEVER ask for your OTP or PIN.\n\n' +
-    'Please stay on this chat — your link is being prepared.'
+    'Great! Your KYC officer will now send you the instructions and video call link.\n\n' +
+    'Please stay on this chat — it will arrive in a moment.'
   );
 }
 
@@ -70,6 +59,12 @@ export async function startVideoKYC(from) {
   // Called by agent from dashboard after vendor confirms readiness
   setSession(from, STATE.VIDEO_KYC);
 
+  // Send the How-to-KYC image FIRST, before the link
+  if (KYC_IMG) {
+    await sendImage(from, KYC_IMG, 'How to complete your Video KYC — follow these steps before joining.').catch(() => {});
+    await pause(800);
+  }
+
   const roomId     = 'SVANidhi' + crypto.randomBytes(5).toString('hex').toUpperCase();
   const link       = KYC_BASE + '/' + roomId;
   const expiryTime = new Date(Date.now() + EXPIRY_MIN * 60 * 1000);
@@ -85,19 +80,13 @@ export async function startVideoKYC(from) {
     },
   });
 
-  await sendButtons(
-    from,
+  await sendText(from,
     'Your Video KYC link is ready!\n\n' +
     link + '\n\n' +
-    'Tap the link to join. Have your ID card ready to hold next to your face for the officer.\n\n' +
-    'Link valid until ' + formatTime(expiryTime) + '.',
-    [
-      { id: 'kyc_done',  title: 'I have completed KYC' },
-      { id: 'kyc_retry', title: 'Get a new link'        },
-      { id: 'kyc_help',  title: 'I need help'           },
-    ],
-    'Join Video KYC Now',
-    'Officers available: 9 AM to 6 PM'
+    'Tap the link to join. Have your Aadhaar Card or Voter ID ready to hold next to your face.\n\n' +
+    'Your agent is already on the call waiting for you.\n' +
+    'Link valid until ' + formatTime(expiryTime) + '.\n\n' +
+    'Once the call is done, your agent will approve your KYC from their end.'
   );
 }
 
@@ -130,19 +119,13 @@ export async function handleKYCRetry(from) {
 
 export async function handleKYCHelp(from) {
   const { data } = getSession(from);
-  await sendButtons(
-    from,
+  await sendText(from,
     'Video KYC Help\n\n' +
     'Link not opening? Open it in Chrome or Firefox.\n\n' +
     'Camera not working? Allow camera permission when the browser asks.\n\n' +
-    'Call disconnected? Get a fresh link and rejoin.\n\n' +
-    'Officer not available? Available 9 AM to 6 PM on working days.\n\n' +
-    'Helpline: 1800-11-1979 (toll free)',
-    [
-      { id: 'kyc_done',  title: 'I completed the KYC' },
-      { id: 'kyc_retry', title: 'Get a new link'       },
-    ],
-    'PM SVANidhi KYC Support'
+    'Call disconnected? Ask your agent to resend the link.\n\n' +
+    'Helpline: 1800-11-1979 (toll free)\n\n' +
+    'Your agent will approve your KYC once the call is done.'
   );
 }
 
@@ -163,14 +146,10 @@ export async function handleKYCTextReminder(from) {
     return;
   }
 
-  await sendButtons(
-    from,
-    'Your Video KYC is still pending.\n\nJoin the call at:\n' + link + '\n\nTap below when done.',
-    [
-      { id: 'kyc_done',  title: 'I completed the KYC'  },
-      { id: 'kyc_retry', title: 'Get a new link'        },
-      { id: 'kyc_help',  title: 'I need help'           },
-    ]
+  await sendText(from,
+    'Your Video KYC is still pending.\n\n' +
+    'Join the call at:\n' + link + '\n\n' +
+    'Your agent will approve your KYC once the call is done.'
   );
 }
 
@@ -217,14 +196,9 @@ export async function handleKYCReady(from) {
     if (expired) {
       await startVideoKYC(from);
     } else {
-      await sendButtons(from,
-        'Join your Video KYC call here: ' + data.kyc.link + '. Have your ID card ready.',
-        [
-          { id: 'kyc_done',  title: 'I have completed KYC' },
-          { id: 'kyc_retry', title: 'Get a new link' },
-          { id: 'kyc_help',  title: 'I need help' },
-        ],
-        'Join Video KYC Now'
+      await sendText(from,
+        'Join your Video KYC call here:\n' + data.kyc.link + '\n\n' +
+        'Have your ID card ready. Your agent will approve your KYC once the call is done.'
       );
     }
   } else {
