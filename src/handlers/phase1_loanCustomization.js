@@ -226,35 +226,12 @@ export async function handleEligibilityReply(from, buttonId) {
     );
     return;
   }
-  // Proceed to eligibility confirmation
-  await showEligibilityResult(from);
+  // Details confirmed — go straight to document upload
+  // Loan eligibility is shown in Phase 3 after documents are verified
+  await handleFinalEligibilityProceed(from);
 }
 
-async function showEligibilityResult(from) {
-  setSession(from, STATE.ELIGIBILITY_RESULT);
-  await sendText(from, 'Checking your loan eligibility...');
-  await pause(1000);
-  await sendButtons(
-    from,
-    'Congratulations!\n\n' +
-    'Based on your profile, you are eligible for:\n\n' +
-    'Loan Amount: Rs.25,000\n\n' +
-    'Loan Details:\n' +
-    '- Interest Rate: 7% p.a. (with subsidy)\n' +
-    '- Tenure: Flexible (3 to 12 months)\n' +
-    '- Processing Fee: Rs.0\n' +
-    '- Cashback on digital repayments: Yes\n\n' +
-    'Would you like to proceed with the application?',
-    [
-      { id: 'eligibility_proceed', title: 'Proceed' },
-      { id: 'eligibility_exit',    title: 'Exit'     },
-    ],
-    'Your Loan Eligibility Result',
-    'This offer is valid for 24 hours.'
-  );
-}
-
-// Called from eligibility_proceed after showing result
+// Called when vendor confirms their DB details are correct
 export async function handleFinalEligibilityProceed(from) {
   const { startDocumentUpload } = await import('./phase2_documentUpload.js');
   await startDocumentUpload(from);

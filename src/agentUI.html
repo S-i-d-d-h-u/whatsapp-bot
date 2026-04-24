@@ -801,24 +801,9 @@ function renderPhase1(area, bar, action) {
       </div>
     </div>
 
-    <!-- Step: Eligibility result -->
-    <div id="card-eligibility"
-         style="display:${p1Step === 'eligibility' ? 'block' : 'none'}">
-      <div class="card card-green">
-        <div class="card-title">💰 Loan eligibility result</div>
-        <div class="data-row">
-          <span class="data-key">Eligible loan</span>
-          <span class="data-val" style="color:var(--green);font-size:16px;font-weight:700">₹25,000</span>
-        </div>
-        <div class="data-row"><span class="data-key">Interest rate</span><span class="data-val">7% p.a.</span></div>
-        <div class="data-row"><span class="data-key">Processing fee</span><span class="data-val">₹0</span></div>
-        <div class="data-row"><span class="data-key">Tenure</span><span class="data-val">3–12 months</span></div>
-        <button class="btn btn-green btn-full" style="margin-top:12px" onclick="confirmAndProceedDocs()">
-          ✓ Vendor agrees — proceed to documents →
-        </button>
-      </div>
-    </div>
-  `;
+    <!-- Eligibility result removed from Phase 1 —
+         loan eligibility is shown in Phase 3 after documents are verified -->
+  \`;
 }
 
 async function selectDbPath(path) {
@@ -879,12 +864,12 @@ async function giveConsent() {
 }
 
 async function proceedEligibility() {
-  const ok = await agentAction('proceed_eligibility');
+  // Confirm DB details and move straight to document upload
+  const ok = await agentAction('proceed_final_eligibility');
   if (ok) {
-    p1Step = 'eligibility';
-    toast('Eligibility confirmed');
-    addLog('Eligibility check passed');
-    renderPhase(1);
+    toast('Details confirmed — proceeding to document upload');
+    addLog('DB details confirmed — moving to docs');
+    switchPhase(2);
   }
 }
 
@@ -892,7 +877,7 @@ async function confirmAndProceedDocs() {
   const ok = await agentAction('proceed_final_eligibility');
   if (ok) {
     toast('Proceeding to document upload');
-    addLog('Eligibility accepted — moving to docs');
+    addLog('Moving to document upload');
     switchPhase(2);
   }
 }

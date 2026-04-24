@@ -66,15 +66,23 @@ export async function handleReferencesInput(from, text) {
 // ── Financial consent ──────────────────────────────────────────────────────
 export async function askFinancialConsent(from) {
   setSession(from, STATE.PROFILING_FINANCE);
+
+  // Plain text first to explain context
+  await sendText(from,
+    'One more step before we calculate your loan limit.\n\n' +
+    'Financial History Check\n\n' +
+    'To offer you the highest eligible loan amount, we would like to check your last 12 months of transaction history.\n\n' +
+    'This is completely secure. We will never access your bank password or initiate any transaction.'
+  );
+  await pause(400);
+
+  // Then the consent buttons
   await sendButtons(
     from,
-    'Financial Check\n\n' +
-    'To calculate your exact loan limit, may we check your last 12 months of transaction history?\n\n' +
-    'This helps us offer you the highest eligible loan amount.\n\n' +
-    'We will never access your bank password or initiate any transaction.',
+    'Do you give us permission to check your 12-month transaction history?',
     [
-      { id: 'finance_yes', title: 'Yes, check my history' },
-      { id: 'finance_no',  title: 'Skip financial check'  },
+      { id: 'finance_yes', title: 'Yes, I agree'  },
+      { id: 'finance_no',  title: 'No, skip this' },
     ],
     'Financial Eligibility Check',
     'Powered by Account Aggregator Framework'
@@ -85,11 +93,20 @@ export async function handleFinancialConsentReply(from, buttonId) {
   const doCheck = buttonId === 'finance_yes';
   updateSessionData(from, { financialCheckConsent: doCheck });
 
-  await sendText(from, doCheck
-    ? 'Checking your transaction history... please wait a moment.'
-    : 'Skipping financial check — using your document-based profile.'
-  );
-  if (doCheck) await pause(1800);
+  if (doCheck) {
+    // Send consent confirmation to vendor on WhatsApp
+    await sendText(from,
+      'Thank you for your consent.\n\n' +
+      'Checking your transaction history... please wait a moment.'
+    );
+    await pause(1800);
+  } else {
+    await sendText(from,
+      'Financial check skipped.\n\n' +
+      'Calculating your loan eligibility based on your profile.'
+    );
+    await pause(500);
+  }
 
   await showEligibilityResult(from, doCheck);
 }
