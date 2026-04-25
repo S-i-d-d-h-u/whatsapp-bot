@@ -2,387 +2,263 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=360px, initial-scale=1, maximum-scale=1"/>
+<meta name="viewport" content="width=300px, initial-scale=1, maximum-scale=1"/>
 <title>PM SVANidhi — Agent Dashboard</title>
 <style>
-:root {
-  --green:     #1a6e3c;
-  --green-mid: #2d9e5f;
-  --green-lt:  #e8f5ee;
-  --green-pale:#f4fbf7;
-  --amber:     #f59e0b;
-  --amber-lt:  #fef9ec;
-  --red:       #dc2626;
-  --red-lt:    #fef2f2;
-  --blue:      #2563eb;
-  --blue-lt:   #eff6ff;
-  --gray:      #6b7280;
-  --gray-lt:   #f9fafb;
-  --border:    #e5e7eb;
-  --text:      #111827;
-  --text-2:    #6b7280;
-  --white:     #ffffff;
-  --radius:    10px;
-  --shadow:    0 1px 3px rgba(0,0,0,.08);
+:root{
+  --green:#1a6e3c;--green-mid:#2d9e5f;--green-lt:#e8f5ee;--green-pale:#f4fbf7;
+  --amber:#f59e0b;--amber-lt:#fef9ec;--red:#dc2626;--red-lt:#fef2f2;
+  --blue:#2563eb;--gray:#6b7280;--gray-lt:#f9fafb;--border:#e5e7eb;
+  --text:#111827;--text-2:#6b7280;--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{
-  font-family:'DM Sans',system-ui,sans-serif;
-  background:#f0f2f0;
-  color:var(--text);
-  font-size:14px;
-  width:360px;
-  min-height:800px;
-  margin:0 auto;
-  position:relative;
-  overflow-x:hidden;
+  font-family:'DM Sans',system-ui,sans-serif;background:#f0f2f0;
+  color:var(--text);font-size:13px;width:300px;min-height:800px;
+  margin:0 auto;position:relative;overflow-x:hidden;
 }
-/* ── Login ────────────────────────────────────────────────────── */
+
+/* ── Login ── */
 #loginScreen{
   min-height:800px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:24px;
+  align-items:center;justify-content:center;padding:20px;
   background:linear-gradient(160deg,#0f4025 0%,#1a6e3c 60%,#2d9e5f 100%);
 }
-.login-logo{font-size:32px;margin-bottom:8px}
-.login-title{color:#fff;font-size:22px;font-weight:700;margin-bottom:4px}
-.login-sub{color:rgba(255,255,255,.7);font-size:13px;margin-bottom:36px}
-.login-card{
-  background:#fff;border-radius:16px;padding:24px;width:100%;
-  box-shadow:0 8px 32px rgba(0,0,0,.18)
-}
-.login-card label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
-.login-card input{
-  width:100%;padding:12px 14px;border:1.5px solid var(--border);
-  border-radius:8px;font-size:15px;outline:none;margin-bottom:16px;
-  transition:border .2s
-}
+.login-logo{font-size:40px;margin-bottom:8px;text-align:center}
+.login-title{color:#fff;font-size:20px;font-weight:700;margin-bottom:2px;text-align:center}
+.login-sub{color:rgba(255,255,255,.7);font-size:12px;margin-bottom:28px;text-align:center}
+.login-card{background:#fff;border-radius:14px;padding:20px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.login-card label{display:block;font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.login-card input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;margin-bottom:14px}
 .login-card input:focus{border-color:var(--green-mid)}
-.btn-primary{
-  width:100%;padding:14px;background:var(--green);color:#fff;
-  border:none;border-radius:8px;font-size:15px;font-weight:600;
-  cursor:pointer;transition:background .15s
-}
-.btn-primary:active{background:#0f4025}
+.btn-login{width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
 
-/* ── App shell ────────────────────────────────────────────────── */
+/* ── App shell ── */
 #appShell{display:none;flex-direction:column;min-height:800px}
 
-/* ── Top bar ─────────────────────────────────────────────────── */
+/* ── Top bar ── */
 .topbar{
-  background:var(--green);color:#fff;padding:12px 16px;
+  background:var(--green);color:#fff;padding:10px 12px;
   display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:100
 }
-.topbar-left{display:flex;align-items:center;gap:10px}
-.topbar-logo{font-size:20px}
-.topbar-title{font-size:15px;font-weight:700}
-.topbar-sub{font-size:11px;opacity:.75}
-.topbar-agent{
-  background:rgba(255,255,255,.2);border-radius:20px;
-  padding:4px 10px;font-size:12px;font-weight:500
-}
-
-/* ── Phase tabs ──────────────────────────────────────────────── */
-.phase-tabs{
-  display:flex;background:#fff;border-bottom:1px solid var(--border);
-  overflow-x:auto;scrollbar-width:none;padding:0 8px
-}
-.phase-tabs::-webkit-scrollbar{display:none}
-.phase-tab{
-  flex-shrink:0;padding:10px 12px;font-size:11px;font-weight:600;
-  color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;
-  white-space:nowrap;transition:all .15s
-}
-.phase-tab.active{color:var(--green);border-bottom-color:var(--green)}
-.phase-tab.done{color:var(--green-mid)}
-.phase-tab .dot{
-  display:inline-block;width:7px;height:7px;border-radius:50%;
-  background:var(--border);margin-right:4px;vertical-align:middle
-}
-.phase-tab.done .dot{background:var(--green-mid)}
-.phase-tab.active .dot{background:var(--green)}
-/* ── Live sync indicator ─────────────────────────────────────── */
-#syncBadge{
-  display:inline-flex;align-items:center;gap:5px;
-  background:rgba(255,255,255,.15);border-radius:20px;
-  padding:3px 9px;font-size:11px;font-weight:500;color:#fff
-}
-#syncDot{
-  width:7px;height:7px;border-radius:50%;background:#86efac;
-  animation:syncpulse 2s infinite
-}
+.topbar-left{display:flex;align-items:center;gap:8px}
+.topbar-logo{font-size:18px}
+.topbar-title{font-size:13px;font-weight:700;line-height:1.2}
+.topbar-sub{font-size:10px;opacity:.75}
+.topbar-right{display:flex;align-items:center;gap:5px}
+#syncBadge{display:none;align-items:center;gap:4px;background:rgba(255,255,255,.15);border-radius:20px;padding:2px 7px;font-size:10px;font-weight:500;color:#fff}
+#syncDot{width:6px;height:6px;border-radius:50%;background:#86efac;animation:syncpulse 2s infinite}
 #syncDot.stale{background:#fca5a5;animation:none}
-@keyframes syncpulse{
-  0%,100%{opacity:1} 50%{opacity:.4}
-}
+@keyframes syncpulse{0%,100%{opacity:1}50%{opacity:.4}}
+#refreshBtn{display:none;background:rgba(255,255,255,.15);border:none;border-radius:20px;color:#fff;font-size:10px;padding:2px 8px;cursor:pointer}
 
-/* ── Vendor strip ────────────────────────────────────────────── */
+/* ── Progress bar ── */
+.progress-wrap{background:#fff;padding:8px 12px;border-bottom:1px solid var(--border)}
+.progress-label{display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px;font-weight:600;color:var(--text-2)}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
+.step-title{font-size:12px;font-weight:700;color:var(--green);margin-top:3px}
+
+/* ── Vendor strip ── */
 .vendor-strip{
-  background:#fff;padding:10px 16px;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--border)
+  background:#fff;padding:8px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between
 }
-.vendor-num{font-size:13px;font-weight:600}
-.vendor-state{
-  font-size:11px;padding:3px 8px;border-radius:12px;font-weight:500
-}
-.state-idle{background:var(--gray-lt);color:var(--gray)}
-.state-active{background:var(--green-lt);color:var(--green)}
-.state-waiting{background:var(--amber-lt);color:#b45309}
-.state-done{background:var(--green-lt);color:var(--green)}
+.vendor-phone{font-size:12px;font-weight:700}
+.vendor-state{font-size:10px;color:var(--text-2)}
+.vendor-input-row{display:flex;gap:6px;align-items:center}
+.vendor-input-row input{flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;outline:none}
+.vendor-input-row input:focus{border-color:var(--green-mid)}
 
-/* ── Scroll area ─────────────────────────────────────────────── */
-.scroll-area{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+/* ── Scroll area ── */
+.scroll-area{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px;padding-bottom:70px}
 
-/* ── Cards ───────────────────────────────────────────────────── */
-.card{
-  background:#fff;border-radius:var(--radius);padding:14px;
-  box-shadow:var(--shadow);border:1px solid var(--border)
-}
-.card-title{font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
-.card-green{background:var(--green-pale);border-color:#c3e6d4}
-.card-amber{background:var(--amber-lt);border-color:#fde68a}
-.card-red{background:var(--red-lt);border-color:#fca5a5}
+/* ── Cards ── */
+.card{background:#fff;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)}
+.card-green{border:1.5px solid var(--green-lt);background:var(--green-pale)}
+.card-amber{border:1.5px solid #fde68a;background:var(--amber-lt)}
+.card-title{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:5px}
 
-/* ── Form elements ───────────────────────────────────────────── */
-.field{margin-bottom:10px}
-.field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px}
-.field input,.field select,.field textarea{
-  width:100%;padding:9px 12px;border:1.5px solid var(--border);
-  border-radius:7px;font-size:13px;outline:none;background:#fff;
-  color:var(--text);transition:border .2s
-}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green-mid)}
-.field textarea{resize:none;height:64px}
+/* ── Data rows ── */
+.data-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.data-row:last-child{border-bottom:none}
+.data-key{color:var(--text-2);font-size:10px}
+.data-val{font-weight:600;font-size:11px;text-align:right}
+.redacted{font-family:monospace;letter-spacing:1px}
 
-/* ── Buttons ─────────────────────────────────────────────────── */
-.btn{
-  padding:9px 14px;border-radius:7px;font-size:13px;font-weight:600;
-  cursor:pointer;border:none;transition:all .15s;display:inline-flex;
-  align-items:center;gap:6px
-}
-.btn:active{transform:scale(.97)}
+/* ── Buttons ── */
+.btn{padding:9px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn:active{opacity:.8}
 .btn-green{background:var(--green);color:#fff}
-.btn-green:hover{background:#0f4025}
-.btn-green-outline{background:transparent;border:1.5px solid var(--green);color:var(--green)}
+.btn-gray{background:var(--gray-lt);color:var(--text);border:1px solid var(--border)}
 .btn-amber{background:var(--amber);color:#fff}
 .btn-red{background:var(--red);color:#fff}
-.btn-gray{background:var(--gray-lt);color:var(--text);border:1px solid var(--border)}
-.btn-full{width:100%;justify-content:center;padding:12px}
-.btn-row{display:flex;gap:8px}
-.btn-row .btn{flex:1;justify-content:center}
+.btn-full{width:100%;display:block;text-align:center}
+.btn-row{display:flex;gap:6px;margin-top:8px}
+.btn-row .btn{flex:1}
 
-/* ── OTP box ─────────────────────────────────────────────────── */
-.otp-row{display:flex;gap:8px;margin-bottom:8px}
-.otp-row input{
-  flex:1;text-align:center;font-size:20px;font-weight:700;
-  padding:10px 0;border:2px solid var(--border);border-radius:8px;
-  letter-spacing:2px
-}
+/* ── Form fields ── */
+.field{margin-bottom:10px}
+.field label{display:block;font-size:10px;font-weight:600;color:var(--text-2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+.field input,.field select{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;outline:none}
+.field input:focus{border-color:var(--green-mid)}
+.field-note{font-size:10px;color:var(--text-2);margin-top:3px}
+
+/* ── OTP row ── */
+.otp-row{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.otp-row input{width:44px;height:44px;text-align:center;font-size:18px;font-weight:700;border:2px solid var(--border);border-radius:8px;outline:none}
 .otp-row input:focus{border-color:var(--green)}
 
-/* ── Data rows ───────────────────────────────────────────────── */
-.data-row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:7px 0;border-bottom:1px solid var(--border);font-size:13px
-}
-.data-row:last-child{border-bottom:none}
-.data-key{color:var(--text-2);font-size:12px}
-.data-val{font-weight:500;color:var(--text)}
-.data-val.redacted{color:var(--gray);font-family:monospace;font-size:12px;letter-spacing:1px}
-
-/* ── OCR preview ─────────────────────────────────────────────── */
-.ocr-img{
-  width:100%;height:120px;object-fit:cover;border-radius:7px;
-  border:1px solid var(--border);margin-bottom:10px;background:var(--gray-lt);
-  display:flex;align-items:center;justify-content:center;color:var(--text-2);
-  font-size:12px
-}
-.ocr-field{
-  display:flex;gap:6px;align-items:center;margin-bottom:6px
-}
-.ocr-field label{font-size:11px;color:var(--text-2);white-space:nowrap;min-width:80px}
-.ocr-field input{
-  flex:1;padding:6px 10px;border:1.5px solid var(--border);
-  border-radius:6px;font-size:12px;outline:none
-}
+/* ── OCR fields ── */
+.ocr-field{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.ocr-field label{font-size:10px;color:var(--text-2);white-space:nowrap;min-width:70px}
+.ocr-field input{flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;outline:none}
 .ocr-field input:focus{border-color:var(--green-mid)}
 
-/* ── Progress checklist ──────────────────────────────────────── */
-.checklist-item{
-  display:flex;align-items:center;gap:10px;padding:8px 0;
-  border-bottom:1px solid var(--border);font-size:13px
-}
-.checklist-item:last-child{border-bottom:none}
-.check-icon{
-  width:22px;height:22px;border-radius:50%;display:flex;
-  align-items:center;justify-content:center;font-size:12px;flex-shrink:0
-}
-.check-done{background:var(--green-lt);color:var(--green)}
-.check-pending{background:var(--gray-lt);color:var(--gray)}
-.check-active{background:var(--amber-lt);color:#b45309}
+/* ── Checklist ── */
+.check-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.check-item:last-child{border-bottom:none}
+.check-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+.check-done{background:var(--green);color:#fff}
+.check-pending{background:var(--border);color:var(--gray)}
 
-/* ── Repayment tabs ──────────────────────────────────────────── */
-.rep-tabs{display:flex;gap:4px;margin-bottom:12px}
-.rep-tab{
-  flex:1;text-align:center;padding:8px 4px;border-radius:7px;
-  font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);
-  color:var(--text-2);transition:all .15s
-}
-.rep-tab.active{background:var(--green);color:#fff;border-color:var(--green)}
-
-/* ── EMI result card ─────────────────────────────────────────── */
-.emi-result{
-  background:var(--green);color:#fff;border-radius:10px;
-  padding:14px;margin:10px 0
-}
-.emi-result-label{font-size:11px;opacity:.8;margin-bottom:2px}
-.emi-result-val{font-size:26px;font-weight:700}
-.emi-result-sub{font-size:12px;opacity:.8;margin-top:4px}
-.emi-split{display:flex;justify-content:space-between;margin-top:8px}
-.emi-split-item{text-align:center}
-.emi-split-item .val{font-size:16px;font-weight:700}
-.emi-split-item .lab{font-size:10px;opacity:.7}
-
-/* ── Month grid ──────────────────────────────────────────────── */
-.month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
-.month-btn{
-  padding:8px 0;text-align:center;border-radius:7px;font-size:12px;
-  font-weight:500;cursor:pointer;border:1.5px solid var(--border);
-  color:var(--text-2);background:#fff;transition:all .15s
-}
+/* ── Month grid ── */
+.month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.month-btn{padding:6px 2px;text-align:center;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--text)}
 .month-btn.selected{background:var(--green);color:#fff;border-color:var(--green)}
 
-/* ── Slider ──────────────────────────────────────────────────── */
-.slider-wrap{margin:8px 0}
-.slider-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:4px}
-.slider-label .val{font-weight:700;color:var(--text)}
-input[type=range]{width:100%;accent-color:var(--green)}
+/* ── Slider ── */
+.slider-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:11px}
+.slider-label .val{font-weight:700;color:var(--green);font-size:13px}
+input[type=range]{width:100%;accent-color:var(--green);height:4px}
 
-/* ── Info pill ───────────────────────────────────────────────── */
-.info-pill{
-  background:var(--green-lt);color:var(--green);
-  border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;
-  display:inline-flex;align-items:center;gap:5px
+/* ── EMI result card ── */
+.emi-result{background:var(--green);color:#fff;border-radius:var(--radius);padding:12px;margin:8px 0}
+.emi-result-label{font-size:10px;opacity:.8;margin-bottom:2px}
+.emi-result-val{font-size:22px;font-weight:700}
+.emi-result-sub{font-size:10px;opacity:.7}
+
+/* ── Info pill ── */
+.info-pill{display:flex;align-items:center;gap:5px;background:var(--green-lt);border-radius:20px;padding:5px 10px;font-size:10px;font-weight:600;color:var(--green)}
+
+/* ── Nav buttons (bottom) ── */
+#pageNav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:300px;background:#fff;border-top:1px solid var(--border);
+  padding:8px 12px;display:none;gap:8px;z-index:200
 }
+#pageNav .btn{flex:1;padding:10px}
 
-/* ── Toast ───────────────────────────────────────────────────── */
+/* ── Agent chat bar ── */
+#agentChatBar{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:300px;background:#fff;border-top:1.5px solid var(--border);
+  padding:7px 10px;display:none;z-index:201
+}
+#agentChatBar .inner{display:flex;gap:6px;align-items:center}
+#agentChatBar input{flex:1;padding:7px 11px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;outline:none}
+#agentChatBar input:focus{border-color:var(--green-mid)}
+#agentChatBar button{background:var(--green);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:14px;cursor:pointer;flex-shrink:0}
+
+/* ── Toast ── */
 #toast{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:#111;color:#fff;padding:10px 20px;border-radius:20px;
-  font-size:13px;opacity:0;transition:opacity .3s;z-index:999;
-  white-space:nowrap;pointer-events:none
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  background:#1a6e3c;color:#fff;padding:8px 16px;border-radius:20px;
+  font-size:12px;font-weight:500;opacity:0;transition:opacity .3s;z-index:300;
+  white-space:nowrap;max-width:280px;text-align:center
 }
 
-/* ── Bottom action bar ───────────────────────────────────────── */
-.bottom-bar{
-  background:#fff;padding:12px 16px;border-top:1px solid var(--border);
-  position:sticky;bottom:0
-}
+/* ── Repay tabs ── */
+.repay-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:0}
+.repay-tab{flex:1;text-align:center;padding:8px 2px;font-size:10px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);margin-bottom:-2px;white-space:pre-line;line-height:1.3}
+.repay-tab.active{border-bottom-color:var(--green);color:var(--green)}
 
-/* ── Log strip ───────────────────────────────────────────────── */
-.log-strip{
-  background:var(--gray-lt);border-radius:7px;padding:8px 10px;
-  font-size:11px;color:var(--text-2);max-height:80px;overflow-y:auto
-}
-.log-entry{margin-bottom:3px}
-.log-entry:last-child{margin-bottom:0}
+/* ── Log ── */
+.log-strip{background:var(--gray-lt);border-radius:7px;padding:7px 9px;font-size:10px;color:var(--text-2);max-height:70px;overflow-y:auto}
+.log-entry{margin-bottom:2px}
 .log-time{color:var(--green);margin-right:4px}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════════
-     LOGIN SCREEN
-════════════════════════════════════════════════════════════════ -->
+<!-- ══ LOGIN ════════════════════════════════════════════════ -->
 <div id="loginScreen">
-  <div class="login-logo">🏦</div>
+  <div class="login-logo">🏛️</div>
   <div class="login-title">PM SVANidhi</div>
   <div class="login-sub">Agent Dashboard</div>
   <div class="login-card">
     <label>Agent Phone Number</label>
-    <input type="tel" id="agentPhone" placeholder="Enter your mobile number" maxlength="10"/>
+    <input type="tel" id="agentPhone" placeholder="8800446121" maxlength="10"/>
     <label>Password</label>
-    <input type="password" id="agentPass" placeholder="Enter password" onkeydown="if(event.key==='Enter')agentLogin()"/>
-    <button class="btn-primary" onclick="agentLogin()">Login →</button>
+    <input type="password" id="agentPass" placeholder="••••••••"
+           onkeydown="if(event.key==='Enter')agentLogin()"/>
+    <button class="btn-login" onclick="agentLogin()">Login →</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     APP SHELL
-════════════════════════════════════════════════════════════════ -->
+<!-- ══ APP SHELL ══════════════════════════════════════════════ -->
 <div id="appShell">
 
   <!-- Top bar -->
   <div class="topbar">
     <div class="topbar-left">
-      <span class="topbar-logo">🏦</span>
+      <span class="topbar-logo">🏛️</span>
       <div>
         <div class="topbar-title">PM SVANidhi</div>
         <div class="topbar-sub">Agent Console</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span class="topbar-agent" id="agentBadge">Agent</span>
-      <span id="syncBadge" style="display:none"><span id="syncDot"></span><span id="syncLabel">Live</span></span>
-      <button id="refreshBtn" onclick="manualRefresh()"
-        style="background:rgba(255,255,255,.15);border:none;border-radius:20px;color:#fff;
-               font-size:11px;padding:3px 10px;cursor:pointer;display:none">↺ Refresh</button>
+    <div class="topbar-right">
+      <span id="agentBadge" style="background:rgba(255,255,255,.2);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;color:#fff">Agent</span>
+      <span id="syncBadge"><span id="syncDot"></span><span id="syncLabel">Live</span></span>
+      <button id="refreshBtn" onclick="manualRefresh()">↺</button>
     </div>
   </div>
 
-  <!-- Phase tabs -->
-  <div class="phase-tabs" id="phaseTabs">
-    <div class="phase-tab active" data-phase="0" onclick="switchPhase(0)"><span class="dot"></span>Entry</div>
-    <div class="phase-tab" data-phase="1" onclick="switchPhase(1)"><span class="dot"></span>Verify</div>
-    <div class="phase-tab" data-phase="2" onclick="switchPhase(2)"><span class="dot"></span>Docs</div>
-    <div class="phase-tab" data-phase="3" onclick="switchPhase(3)"><span class="dot"></span>Profile</div>
-    <div class="phase-tab" data-phase="4" onclick="switchPhase(4)"><span class="dot"></span>KYC</div>
-    <div class="phase-tab" data-phase="5" onclick="switchPhase(5)"><span class="dot"></span>Repay</div>
-    <div class="phase-tab" data-phase="6" onclick="switchPhase(6)"><span class="dot"></span>Disburse</div>
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="stepLabel">Step 1 of 11</span>
+      <span id="stepName" style="color:var(--green);font-weight:700">Landing</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:9%"></div></div>
   </div>
 
   <!-- Vendor strip -->
-  <div class="vendor-strip">
+  <div class="vendor-strip" id="vendorStrip">
     <div>
-      <div class="vendor-num" id="vendorNumDisplay">No vendor loaded</div>
-      <div style="font-size:11px;color:var(--text-2)" id="vendorStateDisplay">—</div>
+      <div class="vendor-phone" id="vendorNumDisplay">No vendor loaded</div>
+      <div class="vendor-state" id="vendorStateDisplay">—</div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <input type="tel" id="vendorPhoneInput" placeholder="91XXXXXXXXXX"
-             style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:120px;outline:none"/>
-      <button class="btn btn-green" style="padding:6px 10px;font-size:12px" onclick="loadVendor()">Load</button>
+    <div class="vendor-input-row">
+      <input type="tel" id="vendorPhoneInput" placeholder="91XXXXXXXXXX" style="width:110px"/>
+      <button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="loadVendor()">Load</button>
     </div>
   </div>
 
   <!-- Scroll area -->
   <div class="scroll-area" id="scrollArea">
-    <div class="card" style="text-align:center;padding:32px 16px;color:var(--text-2)">
-      <div style="font-size:28px;margin-bottom:8px">📋</div>
-      <div style="font-size:13px">Load a vendor to begin</div>
+    <div class="card" style="text-align:center;padding:24px 12px;color:var(--text-2)">
+      <div style="font-size:28px;margin-bottom:6px">📋</div>
+      <div style="font-size:12px">Load a vendor to begin</div>
     </div>
   </div>
 
-  <!-- Sticky agent chat input — always visible once vendor loaded -->
-  <div id="agentChatBar" style="display:none;background:#fff;border-top:1.5px solid var(--border);
-       padding:8px 12px;position:sticky;bottom:0;z-index:50">
-    <div style="display:flex;gap:6px;align-items:center">
+  <!-- Page nav -->
+  <div id="pageNav">
+    <button class="btn btn-gray" id="btnBack" onclick="goBack()">← Back</button>
+    <button class="btn btn-green" id="btnNext" onclick="goNext()">Next →</button>
+  </div>
+
+  <!-- Agent chat -->
+  <div id="agentChatBar">
+    <div class="inner">
       <input type="text" id="agentMsgInput" placeholder="Type a message to vendor..."
-             style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:20px;
-                    font-size:13px;outline:none"
-             onkeydown="if(event.key==='Enter'){sendAgentMessage()}"
-             onfocus="this.style.borderColor='var(--green-mid)'"
-             onblur="this.style.borderColor='var(--border)'"/>
-      <button onclick="sendAgentMessage()"
-              style="background:var(--green);border:none;border-radius:50%;width:36px;height:36px;
-                     color:#fff;font-size:16px;cursor:pointer;flex-shrink:0">↑</button>
+             onkeydown="if(event.key==='Enter')sendAgentMessage()"/>
+      <button onclick="sendAgentMessage()">↑</button>
     </div>
-  </div>
-
-  <!-- Bottom action bar -->
-  <div class="bottom-bar" id="bottomBar" style="display:none">
-    <div id="bottomAction"></div>
   </div>
 
 </div>
@@ -391,1985 +267,1082 @@ input[type=range]{width:100%;accent-color:var(--green)}
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// STATE
+// CONSTANTS & STATE
 // ══════════════════════════════════════════════════════════════
-const PASS   = (new URLSearchParams(location.search).get('pass')) || 'svanidhi2024';
-let agentNum = '';
-let vendor   = { phone: null, state: 'IDLE', data: {} };
-let currentPhase = 0;
+const PASS = (new URLSearchParams(location.search).get('pass')) || 'svanidhi';
+const ANNUAL_REV = 150000;
+const MAX_LOAN   = 30000;
+const RATE       = 0.10;
+const LOAN       = () => Math.min(vendor.data?.loanAmount || MAX_LOAN, MAX_LOAN);
 
-// Constants defined in Phase 5 section below (ANNUAL_REV, MAX_LOAN, RATE)
+let agentNum     = '';
+let vendor       = { phone: null, state: 'IDLE', data: {} };
+let currentPage  = 1;   // 1-11
+let pollTimer    = null;
+let p1Step       = 'phone';
+let selMonths    = [];
+let microCutoffDay = 20;
+let repayTab     = 'fixed';
+let logEntries   = [];
+
+const PAGES = [
+  { n:1,  title:'Landing',          step:'1 of 11' },
+  { n:2,  title:'Phone & OTP',      step:'2 of 11' },
+  { n:3,  title:'Data Consent',     step:'3 of 11' },
+  { n:4,  title:'Data Extraction',  step:'4 of 11' },
+  { n:5,  title:'Documents',        step:'5 of 11' },
+  { n:6,  title:'References',       step:'6 of 11' },
+  { n:7,  title:'Financial Check',  step:'7 of 11' },
+  { n:8,  title:'Loan Eligibility', step:'8 of 11' },
+  { n:9,  title:'KYC Video',        step:'9 of 11' },
+  { n:10, title:'Repayment',        step:'10 of 11'},
+  { n:11, title:'Disbursal',        step:'11 of 11'},
+];
 
 const STATE_LABELS = {
-  IDLE:'Not started', ONBOARDING:'Onboarding', COLLECT_PHONE:'Awaiting phone',
-  COLLECT_UPI:'Awaiting UPI', CONSENT_GATE:'Consent gate',
-  ELIGIBILITY_RESULT:'Eligibility shown', AWAIT_AADHAAR:'Awaiting Aadhaar',
-  AWAIT_PAN:'Awaiting PAN', AWAIT_PASSBOOK:'Awaiting passbook', AWAIT_QR:'Awaiting QR/UPI', PROFILING_REFS:'Collecting references', PROFILING_FINANCE:'Financial consent', LOAN_SELECTION:'Loan amount input', KYC_READINESS:'KYC readiness check', AWAIT_KYC_VIDEO:'Awaiting KYC video',
-  VIDEO_KYC:'Video KYC pending', AWAITING_APPROVAL:'Processing approval',
-  REPAYMENT_MENU:'Repayment menu', MONTHLY_EMI:'Monthly EMI input',
-  MONTHLY_CONFIRM:'Monthly confirm', SEASONAL_HIGH:'Seasonal high months',
-  SEASONAL_LOW:'Seasonal high amount', SEASONAL_CONFIRM:'Seasonal confirm',
-  MICRO_DAILY:'Micro daily input', MICRO_TENURE:'Micro tenure input',
-  MICRO_CONFIRM:'Micro confirm', FINALIZED:'Complete'
+  IDLE:'Not started',ONBOARDING:'Onboarding',COLLECT_PHONE:'Awaiting phone',
+  CONSENT_GATE:'Consent gate',ELIGIBILITY_RESULT:'Details fetched',
+  AWAIT_AADHAAR:'Awaiting OVD',AWAIT_QR:'Awaiting QR',
+  PROFILING_REFS:'Collecting refs',PROFILING_FINANCE:'Financial consent',
+  LOAN_SELECTION:'Loan selection',KYC_READINESS:'KYC readiness',
+  AWAIT_KYC_VIDEO:'Awaiting video',VIDEO_KYC:'KYC in progress',
+  AWAITING_APPROVAL:'Awaiting approval',REPAYMENT_MENU:'Repayment menu',
+  MONTHLY_EMI:'Monthly EMI',SEASONAL_HIGH:'Seasonal high',
+  MICRO_DAILY:'Micro daily',FINALIZED:'Complete',
 };
 
-// ── Log ───────────────────────────────────────────────────────
-const logEntries = [];
+const STATE_TO_PAGE = {
+  IDLE:1,ONBOARDING:1,
+  COLLECT_PHONE:2,
+  CONSENT_GATE:3,
+  ELIGIBILITY_RESULT:4,
+  AWAIT_AADHAAR:5,AWAIT_PAN:5,AWAIT_QR:5,
+  PROFILING_REFS:6,
+  PROFILING_FINANCE:7,
+  LOAN_SELECTION:8,
+  KYC_READINESS:9,AWAIT_KYC_VIDEO:9,VIDEO_KYC:9,AWAITING_APPROVAL:9,
+  REPAYMENT_MENU:10,MONTHLY_EMI:10,SEASONAL_HIGH:10,MICRO_DAILY:10,
+  MONTHLY_CONFIRM:10,SEASONAL_CONFIRM:10,MICRO_CONFIRM:10,
+  FINALIZED:11,
+};
+
+// ── Helpers ───────────────────────────────────────────────────
+const logEntryEl = () => document.getElementById('logBox');
+
 function addLog(msg) {
-  const t = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  logEntries.unshift({ t, msg });
-  if (logEntries.length > 20) logEntries.pop();
+  const t = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  logEntries.unshift({t,msg});
+  if (logEntries.length > 15) logEntries.pop();
 }
 
-// ── Toast ─────────────────────────────────────────────────────
-function toast(msg, ok = true) {
+function toast(msg, ok=true) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.style.background = ok ? '#1a6e3c' : '#dc2626';
   el.style.opacity = '1';
-  setTimeout(() => el.style.opacity = '0', 2800);
+  setTimeout(() => el.style.opacity = '0', 2500);
 }
 
-// ── API helpers ───────────────────────────────────────────────
-async function api(path, opts = {}) {
+async function api(path, opts={}) {
   const sep = path.includes('?') ? '&' : '?';
   const res = await fetch(path + sep + 'pass=' + PASS, opts);
   return res.json();
 }
 
-async function agentAction(action, value = '') {
+async function agentAction(action, value='') {
   if (!vendor.phone) { toast('Load a vendor first', false); return null; }
-  addLog('Action: ' + action + (value ? ' = ' + value : ''));
+  addLog('→ ' + action + (value ? ' [' + String(value).slice(0,20) + ']' : ''));
   try {
     const data = await api('/agent/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ vendorPhone: vendor.phone, action, value }),
     });
     if (!data.ok) { toast(data.error || 'Action failed', false); return null; }
-    // Fetch full updated session to sync data fields too
     try {
       const sess = await fetch('/agent/session/' + vendor.phone + '?pass=' + PASS);
-      const sessData = await sess.json();
-      vendor.state = sessData.state || data.newState || vendor.state;
-      vendor.data  = sessData.data  || vendor.data;
-    } catch (_) {
-      vendor.state = data.newState || vendor.state;
-    }
-    updateVendorStrip();
+      const sd   = await sess.json();
+      vendor.state = sd.state || data.newState || vendor.state;
+      vendor.data  = sd.data  || vendor.data;
+    } catch(_) { vendor.state = data.newState || vendor.state; }
+    updateStrip();
     toast('Done');
     return data;
-  } catch (e) {
-    toast('Network error', false);
-    return null;
-  }
+  } catch(e) { toast('Network error', false); return null; }
 }
 
-// ══════════════════════════════════════════════════════════════
-// LOGIN
-// ══════════════════════════════════════════════════════════════
+// ── Login ─────────────────────────────────────────────────────
 function agentLogin() {
   const phone = document.getElementById('agentPhone').value.trim() || '0000000000';
   const pass  = document.getElementById('agentPass').value.trim();
   if (!pass) { alert('Enter your password'); return; }
-  agentNum = phone || 'Agent';
-  const badge = phone.length >= 10 ? '+91 ' + phone.slice(-10) : 'Agent';
-  document.getElementById('agentBadge').textContent = badge;
+  agentNum = phone;
+  document.getElementById('agentBadge').textContent = '+91 ' + phone.slice(-10);
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
   addLog('Agent logged in');
-  renderPhase(0);
+  goToPage(1);
 }
 
-// ══════════════════════════════════════════════════════════════
-// VENDOR LOAD
-// ══════════════════════════════════════════════════════════════
+// ── Vendor load ───────────────────────────────────────────────
 async function loadVendor() {
-  let raw = document.getElementById('vendorPhoneInput').value.trim().replace(/\D/g, '');
+  let raw = document.getElementById('vendorPhoneInput').value.trim().replace(/\D/g,'');
   if (raw.length === 10) raw = '91' + raw;
-  if (!raw) { toast('Enter a vendor phone number', false); return; }
+  if (!raw) { toast('Enter vendor phone number', false); return; }
   try {
     const data = await api('/agent/session/' + raw);
     vendor.phone = raw;
     vendor.state = data.state || 'IDLE';
     vendor.data  = data.data  || {};
-    updateVendorStrip();
-    addLog('Loaded vendor +' + raw + ' state=' + vendor.state);
-    // Auto-switch to the phase matching vendor's current state
-    const targetPhase = STATE_TO_PHASE[vendor.state];
-    if (targetPhase !== undefined) {
-      currentPhase = targetPhase;
-      document.querySelectorAll('.phase-tab').forEach((t, i) => {
-        t.classList.toggle('active', i === targetPhase);
-      });
-    }
-    renderPhase(currentPhase);
+    updateStrip();
+    addLog('Loaded vendor +' + raw);
+    const targetPage = STATE_TO_PAGE[vendor.state] || 1;
     startPolling();
     document.getElementById('agentChatBar').style.display = 'block';
-    toast('Vendor loaded — live sync active');
-  } catch (e) {
-    toast('Could not load vendor', false);
-  }
+    document.getElementById('pageNav').style.display = 'flex';
+    goToPage(targetPage);
+    toast('Vendor loaded — live sync on');
+  } catch(e) { toast('Could not load vendor', false); }
 }
 
-function updateVendorStrip() {
+function updateStrip() {
   document.getElementById('vendorNumDisplay').textContent = vendor.phone ? '+' + vendor.phone : 'No vendor loaded';
   document.getElementById('vendorStateDisplay').textContent = STATE_LABELS[vendor.state] || vendor.state;
 }
 
-// ══════════════════════════════════════════════════════════════
-// PHASE NAVIGATION
-// ══════════════════════════════════════════════════════════════
-function switchPhase(n) {
-  currentPhase = n;
-  document.querySelectorAll('.phase-tab').forEach((t, i) => {
-    t.classList.toggle('active', i === n);
-  });
-  renderPhase(n);
+// ── Navigation ────────────────────────────────────────────────
+function goToPage(n) {
+  currentPage = Math.max(1, Math.min(11, n));
+  const p = PAGES[currentPage - 1];
+  document.getElementById('stepLabel').textContent = 'Step ' + p.step;
+  document.getElementById('stepName').textContent  = p.title;
+  document.getElementById('progressFill').style.width = Math.round(currentPage / 11 * 100) + '%';
+  document.getElementById('btnBack').style.display = currentPage === 1 ? 'none' : '';
+  renderPage(currentPage);
+  document.getElementById('scrollArea').scrollTop = 0;
 }
 
-function renderPhase(n) {
+function goNext() { goToPage(currentPage + 1); }
+function goBack() { goToPage(currentPage - 1); }
+
+function renderPage(n) {
   const area = document.getElementById('scrollArea');
-  const bar  = document.getElementById('bottomBar');
-  const action = document.getElementById('bottomAction');
-  bar.style.display = 'none';
   area.innerHTML = '';
+  const fns = [null,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11];
+  if (fns[n]) fns[n](area);
+}
 
-  const phases = [
-    renderPhase0, renderPhase1, renderPhase2,
-    renderPhase3, renderPhase4, renderPhase5, renderPhase6
-  ];
-  if (phases[n]) phases[n](area, bar, action);
+// ── Live sync ─────────────────────────────────────────────────
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(syncState, 4000);
+  document.getElementById('syncBadge').style.display = 'inline-flex';
+  document.getElementById('refreshBtn').style.display = 'inline-block';
+}
+
+async function syncState() {
+  if (!vendor.phone) return;
+  try {
+    const res  = await fetch('/agent/session/' + vendor.phone + '?pass=' + PASS);
+    const data = await res.json();
+    const newState = data.state || 'IDLE';
+    if (newState !== vendor.state) {
+      const prev = vendor.state;
+      vendor.state = newState;
+      vendor.data  = data.data || {};
+      updateStrip();
+      addLog('State: ' + prev + ' → ' + newState);
+      const tp = STATE_TO_PAGE[newState];
+      if (tp && tp > currentPage) { goToPage(tp); toast('Vendor advanced to step ' + tp); }
+      else renderPage(currentPage);
+    } else {
+      vendor.data = data.data || vendor.data;
+    }
+    const dot = document.getElementById('syncDot');
+    const lbl = document.getElementById('syncLabel');
+    if (dot) dot.classList.remove('stale');
+    if (lbl) lbl.textContent = 'Live';
+  } catch(e) {
+    const dot = document.getElementById('syncDot');
+    if (dot) dot.classList.add('stale');
+    document.getElementById('syncLabel').textContent = 'Offline';
+  }
+}
+
+async function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  if (btn) { btn.textContent = '↺…'; btn.disabled = true; }
+  await syncState();
+  renderPage(currentPage);
+  if (btn) { btn.textContent = '↺'; btn.disabled = false; }
+  toast('Refreshed');
+}
+
+async function sendAgentMessage() {
+  const input = document.getElementById('agentMsgInput');
+  const msg = input?.value.trim();
+  if (!msg || !vendor.phone) return;
+  input.value = '';
+  const ok = await agentAction('send_custom_message', msg);
+  if (ok) addLog('Sent: ' + msg.slice(0,30));
 }
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 0 — ENTRY & AUTHENTICATION
+// PAGE 1 — LANDING (send welcome, begin application)
 // ══════════════════════════════════════════════════════════════
-function renderPhase0(area, bar, action) {
-  const stateColor = { IDLE:'var(--gray)', ONBOARDING:'var(--green)' };
+function p1(area) {
   const welcomed = vendor.state !== 'IDLE';
-  const started  = ['COLLECT_PHONE','COLLECT_UPI','CONSENT_GATE','ELIGIBILITY_RESULT',
-                    'AWAIT_AADHAAR','AWAIT_PAN','AWAIT_QR','AWAIT_KYC_VIDEO','VIDEO_KYC',
-                    'AWAITING_APPROVAL','REPAYMENT_MENU','FINALIZED'].includes(vendor.state);
-
+  const started  = !['IDLE','ONBOARDING'].includes(vendor.state);
   area.innerHTML = `
     <div class="card">
       <div class="card-title">📩 Welcome message</div>
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-        Send the PM SVANidhi intro with scheme image and application options to vendor's WhatsApp.
+      <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
+        Send the PM SVANidhi intro with scheme image and application options.
       </p>
-      ${welcomed
-        ? '<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:8px">✅ Welcome message sent</div>'
-        : ''}
-      <button class="btn ${welcomed ? 'btn-gray' : 'btn-green'} btn-full" onclick="sendWelcome()">
-        ${welcomed ? '🔄 Resend welcome' : '📩 Send welcome + scheme info'}
+      ${welcomed ? `<div class="info-pill" style="margin-bottom:8px">✅ Welcome sent</div>` : ''}
+      <button class="btn ${welcomed?'btn-gray':'btn-green'} btn-full" onclick="doWelcome()">
+        ${welcomed ? '🔄 Resend welcome' : '📩 Send welcome message'}
       </button>
     </div>
 
     <div class="card ${started ? 'card-green' : ''}">
-      <div class="card-title">🛤️ Begin Application</div>
-      <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-        Once vendor responds, click below. The chatbot will send:<br/>
-        <em style="color:var(--text)">"An agent has joined to assist you."</em>
-      </div>
-      ${started
-        ? '<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:8px">✅ Application started — vendor notified</div>'
-        : ''}
-      <button class="btn ${started ? 'btn-gray' : 'btn-green'} btn-full" onclick="beginApplication()">
-        ${started ? '🔄 Restart application' : '📞 Begin Application (notify vendor)'}
+      <div class="card-title">🛤️ Begin application</div>
+      <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
+        Once vendor responds, click below to notify them an agent has joined.
+      </p>
+      ${started ? `<div class="info-pill" style="margin-bottom:8px">✅ Application started</div>` : ''}
+      <button class="btn ${started?'btn-gray':'btn-green'} btn-full" onclick="doBegin()">
+        ${started ? '🔄 Restart application' : '📞 Begin application'}
       </button>
     </div>
 
     <div class="card">
-      <div class="card-title">📊 Agent number</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
-        <span style="font-size:13px;color:var(--text-2)">Helpline</span>
-        <span style="font-size:15px;font-weight:700;color:var(--green)">880046121</span>
-      </div>
-      <p style="font-size:11px;color:var(--text-2)">Mon–Sat, 9 AM – 6 PM</p>
+      <div class="card-title">📊 Agent helpline</div>
+      <div class="data-row"><span class="data-key">Number</span><span class="data-val" style="color:var(--green)">880046121</span></div>
+      <div class="data-row"><span class="data-key">Hours</span><span class="data-val">Mon–Sat, 9AM–6PM</span></div>
     </div>
 
     <div class="card">
-      <div class="card-title">📊 Session log</div>
+      <div class="card-title">📋 Session log</div>
       <div class="log-strip" id="logBox">
-        ${logEntries.map(e => '<div class="log-entry"><span class="log-time">' + e.t + '</span>' + e.msg + '</div>').join('') || '<div style="color:var(--text-2)">No activity yet</div>'}
+        ${logEntries.length ? logEntries.map(e=>`<div class="log-entry"><span class="log-time">${e.t}</span>${e.msg}</div>`).join('') : '<div style="color:var(--text-2)">No activity yet</div>'}
       </div>
     </div>
   `;
 }
-
-async function sendWelcome() {
-  const ok = await agentAction('start_session');
-  if (ok) { toast('Welcome message sent to vendor'); addLog('Welcome sent'); renderPhase(0); }
-}
-
-async function beginApplication() {
-  const ok = await agentAction('begin_application');
-  if (ok) {
-    toast('Agent joined — vendor notified');
-    addLog('Begin application — agent joined');
-    switchPhase(1);
-  }
-}
+async function doWelcome() { const ok = await agentAction('start_session'); if(ok){addLog('Welcome sent');renderPage(1);} }
+async function doBegin()   { const ok = await agentAction('begin_application'); if(ok){addLog('Application begun');goToPage(2);} }
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 1 — VERIFICATION & IDENTITY FETCH
-// Flow: DB path → Phone → OTP → Consent → Aadhaar/Bank DB → Eligibility
+// PAGE 2 — PHONE & OTP
 // ══════════════════════════════════════════════════════════════
-
-// Sub-step tracker for Phase 1 (persists during renderPhase1 re-renders)
-let p1Step = 'dbpath'; // dbpath | phone | otp | consent | fetched | eligibility
-
-function renderPhase1(area, bar, action) {
-  // Derive step from live session state when possible
-  const s = vendor.state;
+function p2(area) {
   const d = vendor.data || {};
-
-  if (s === 'CONSENT_GATE')        p1Step = 'consent';
-  else if (s === 'ELIGIBILITY_RESULT') {
-    if (p1Step !== 'eligibility') p1Step = d.fetchedName ? 'fetched' : 'fetched';
-  }
-  else if (d.otpSent && !d.otpVerified) p1Step = 'otp';
-  else if (!d.phone)                    p1Step = 'phone';
-
-  // Progress bar for the 5 sub-steps
-  const steps = ['dbpath','phone','otp','consent','fetched','eligibility'];
-  const stepLabels = ['Path','Number','OTP','Consent','DB Fetch','Result'];
-  const curIdx = Math.max(0, steps.indexOf(p1Step));
-
   area.innerHTML = `
-    <!-- Progress stepper -->
-    <div class="card" style="padding:12px 16px">
-      <div style="display:flex;align-items:center;gap:0">
-        ${stepLabels.map((lbl, i) => `
-          <div style="flex:1;text-align:center">
-            <div style="width:22px;height:22px;border-radius:50%;margin:0 auto 3px;
-                 display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
-                 background:${i < curIdx ? 'var(--green)' : i === curIdx ? 'var(--green)' : 'var(--border)'};
-                 color:${i <= curIdx ? '#fff' : 'var(--gray)'}">
-              ${i < curIdx ? '✓' : i+1}
-            </div>
-            <div style="font-size:9px;color:${i <= curIdx ? 'var(--green)' : 'var(--text-2)'};">${lbl}</div>
-          </div>
-          ${i < stepLabels.length - 1 ? `<div style="flex:0 0 8px;height:2px;background:${i < curIdx ? 'var(--green)' : 'var(--border)'};margin-bottom:12px"></div>` : ''}
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Step: Bank-linked phone (only option now) -->
-    <div class="card card-green" id="card-dbpath"
-         style="display:${['dbpath','phone'].includes(p1Step) ? 'block' : 'none'}">
+    <div class="card">
       <div class="card-title">🏦 Bank-linked number</div>
-      <p style="font-size:12px;color:var(--text-2)">
-        We verify using the mobile number linked to the vendor's bank account.
+      <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
+        Ask vendor for the mobile number linked to their bank account.
       </p>
-    </div>
-
-    <!-- Step: Phone number -->
-    <div id="card-phone"
-         style="display:${['phone','otp'].includes(p1Step) ? 'block' : 'none'}">
-      <div class="card">
-        <div class="card-title">📱 Phone number</div>
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          ${d.dbPath === 'bank'
-            ? 'Ask for the number <strong>linked to their bank account</strong>.'
-            : 'Ask for the number <strong>linked to their Aadhaar card</strong>.'}
-        </p>
-        ${d.phone
-          ? `<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:10px">
-               ✅ Number on file: ${d.phone.slice(0,2)}XXXXXX${d.phone.slice(-2)}
-             </div>`
-          : ''}
-        <div class="field">
-          <label>Vendor's linked mobile number</label>
-          <input type="tel" id="verifyPhone" placeholder="10-digit number" maxlength="10"
-                 value="${d.phone || ''}"/>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="submitPhone()">📤 Send OTP</button>
-          <button class="btn btn-gray"  onclick="resendOtp()">🔄 Resend OTP</button>
-        </div>
+      ${d.phone ? `<div class="info-pill" style="margin-bottom:8px">✅ Number: ${d.phone.slice(0,2)}XXXXXX${d.phone.slice(-2)}</div>` : ''}
+      <div class="field">
+        <label>Bank-linked mobile number</label>
+        <input type="tel" id="verifyPhone" placeholder="10-digit number" maxlength="10" value="${d.phone||''}"/>
       </div>
+      <button class="btn btn-green btn-full" onclick="doSendOtp()">📤 Send OTP</button>
     </div>
 
-    <!-- Step: OTP verification -->
-    <div id="card-otp"
-         style="display:${['otp','consent'].includes(p1Step) ? 'block' : 'none'}">
-      <div class="card">
-        <div class="card-title">🔐 OTP verification</div>
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Vendor received a 4-digit OTP on their number. Ask them to read it out.
+    <div class="card ${d.otpVerified ? 'card-green' : ''}">
+      <div class="card-title">🔐 OTP verification</div>
+      ${d.otpVerified ? `
+        <div class="info-pill">✅ OTP verified</div>
+      ` : `
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
+          Ask vendor to read out the 4-digit OTP sent to their number.
         </p>
-        ${d.otpVerified
-          ? `<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:8px">✅ OTP verified</div>`
-          : ''}
-        <div class="otp-row" id="otpInputRow" style="${d.otpVerified ? 'display:none' : ''}">
+        <div class="otp-row">
           <input type="tel" id="otp1" maxlength="1" oninput="otpNext(this,'otp2')"/>
           <input type="tel" id="otp2" maxlength="1" oninput="otpNext(this,'otp3')"/>
           <input type="tel" id="otp3" maxlength="1" oninput="otpNext(this,'otp4')"/>
           <input type="tel" id="otp4" maxlength="1" oninput="otpNext(this,null)"/>
         </div>
-        <div class="btn-row" style="${d.otpVerified ? 'display:none' : ''}">
-          <button class="btn btn-green" onclick="verifyOtp()">✓ Verify OTP</button>
-          <button class="btn btn-gray"  onclick="resendOtp()">🔄 Resend</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step: Data consent -->
-    <div id="card-consent"
-         style="display:${['consent','fetched','eligibility'].includes(p1Step) ? 'block' : 'none'}">
-      <div class="card">
-        <div class="card-title">📑 Data access consent</div>
-        <!-- Mirror: shows exactly what vendor received on WhatsApp -->
-        <div style="background:var(--green-pale);border:1px solid #c3e6d4;border-radius:8px;
-                    padding:10px 12px;font-size:11px;color:var(--text-2);margin-bottom:10px">
-          <div style="font-size:10px;font-weight:600;color:var(--green);margin-bottom:5px">
-            📱 Message sent to vendor
-          </div>
-          <div style="font-size:12px;color:var(--text);line-height:1.5">
-            "To check your eligibility, we need your permission to securely fetch your details from the
-            <strong>${d.dbPath === 'bank' ? 'Bank Account database' : 'Aadhaar (UIDAI) database'}</strong>.
-            Do you agree to this secure data access?"
-          </div>
-          <div style="margin-top:6px;display:flex;gap:6px">
-            <span style="background:var(--green);color:#fff;border-radius:4px;padding:2px 8px;font-size:10px">I Agree</span>
-            <span style="background:var(--red-lt);color:var(--red);border-radius:4px;padding:2px 8px;font-size:10px">I Disagree</span>
-          </div>
-        </div>
-        ${d.consentGiven
-          ? `<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:8px">✅ Vendor gave consent</div>`
-          : ''}
-        <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">
-          Record vendor's response below:
-        </div>
         <div class="btn-row">
-          <button class="btn btn-green" onclick="giveConsent()">✓ Vendor agrees</button>
-          <button class="btn btn-red"   onclick="agentAction('decline_consent').then(() => renderPhase(1))">✗ Declined</button>
+          <button class="btn btn-green" onclick="doVerifyOtp()">✓ Verify</button>
+          <button class="btn btn-gray" onclick="doResendOtp()">🔄 Resend</button>
         </div>
-      </div>
+      `}
     </div>
-
-    <!-- Step: Fetched DB data -->
-    <div id="card-fetched"
-         style="display:${['fetched','eligibility'].includes(p1Step) ? 'block' : 'none'}">
-      <div class="card ${d.fetchedName ? 'card-green' : ''}">
-        <div class="card-title">
-          ${d.dbPath === 'bank' ? '🏦 Bank DB — details retrieved' : '🪪 Aadhaar DB — details retrieved'}
-        </div>
-        ${d.fetchedName ? `
-          <div class="data-row"><span class="data-key">Name</span>
-            <span class="data-val">${d.fetchedName || '—'}</span></div>
-          ${d.dbPath === 'bank' ? `
-            <div class="data-row"><span class="data-key">Account</span>
-              <span class="data-val redacted">${d.fetchedAccount || 'XXXX-XXXX-XXXX'}</span></div>
-            <div class="data-row"><span class="data-key">Bank</span>
-              <span class="data-val">${d.fetchedBank || '—'}</span></div>
-            <div class="data-row"><span class="data-key">IFSC</span>
-              <span class="data-val">${d.fetchedIfsc || '—'}</span></div>
-          ` : `
-            <div class="data-row"><span class="data-key">Aadhaar</span>
-              <span class="data-val redacted">${d.fetchedAadhaar || 'XXXX-XXXX-XXXX'}</span></div>
-            <div class="data-row"><span class="data-key">DOB</span>
-              <span class="data-val">${d.fetchedDob || '—'}</span></div>
-          `}
-          <div class="data-row" style="align-items:flex-start"><span class="data-key">Address</span>
-            <span class="data-val" style="font-size:11px;text-align:right">${d.fetchedAddress || '—'}</span></div>
-          <div style="margin-top:10px">
-            <button class="btn btn-green btn-full" onclick="proceedEligibility()">
-              ✓ Details confirmed — check eligibility
-            </button>
-          </div>
-        ` : `
-          <p style="font-size:12px;color:var(--text-2)">Waiting for consent to fetch data...</p>
-        `}
-      </div>
-    </div>
-
-    <!-- Eligibility result removed from Phase 1 —
-         loan eligibility is shown in Phase 3 after documents are verified -->
   `;
 }
-
-async function selectDbPath(path) {
-  const ok = await agentAction('select_db_path', path);
-  if (ok) {
-    p1Step = 'phone';
-    addLog('DB path selected: ' + path);
-    renderPhase(1);
-  }
-}
-
-async function submitPhone() {
-  const v = document.getElementById('verifyPhone').value.trim();
-  if (!/^\d{10}$/.test(v)) { toast('Enter a valid 10-digit number', false); return; }
+async function doSendOtp() {
+  const v = document.getElementById('verifyPhone')?.value.trim();
+  if (!/^\d{10}$/.test(v)) { toast('Enter valid 10-digit number', false); return; }
   const ok = await agentAction('submit_phone', v);
-  if (ok) {
-    p1Step = 'otp';
-    toast('OTP sent to vendor');
-    addLog('OTP sent to ' + v.slice(0,2) + 'XXXXXX' + v.slice(-2));
-    renderPhase(1);
-  }
+  if (ok) { toast('OTP sent'); addLog('OTP sent to '+v.slice(0,2)+'XXXXXX'+v.slice(-2)); renderPage(2); }
 }
-
-function otpNext(el, nextId) {
-  el.value = el.value.slice(-1);
-  if (nextId && el.value) document.getElementById(nextId)?.focus();
-}
-
-async function verifyOtp() {
-  const otp = ['otp1','otp2','otp3','otp4'].map(id => document.getElementById(id)?.value || '').join('');
-  if (otp.length < 4) { toast('Enter all 4 OTP digits', false); return; }
+function otpNext(el, nextId) { el.value=el.value.slice(-1); if(nextId&&el.value) document.getElementById(nextId)?.focus(); }
+async function doVerifyOtp() {
+  const otp = ['otp1','otp2','otp3','otp4'].map(id=>document.getElementById(id)?.value||'').join('');
+  if (otp.length<4) { toast('Enter all 4 digits', false); return; }
   const ok = await agentAction('verify_otp', otp);
-  if (ok) {
-    p1Step = 'consent';
-    toast('OTP verified');
-    addLog('OTP verified');
-    renderPhase(1);
-  }
+  if (ok) { toast('OTP verified'); addLog('OTP verified'); goToPage(3); }
 }
-
-async function resendOtp() {
-  if (!vendor.phone) { toast('Load vendor first', false); return; }
-  const phone = document.getElementById('verifyPhone')?.value || vendor.data?.phone || '';
-  if (phone) {
-    const ok = await agentAction('submit_phone', phone);
-    if (ok) { toast('OTP resent'); addLog('OTP resent'); p1Step = 'otp'; renderPhase(1); }
-  }
-}
-
-async function giveConsent() {
-  const ok = await agentAction('give_consent');
-  if (ok) {
-    p1Step = 'fetched';
-    toast('Consent given — fetching DB data');
-    addLog('Consent given, data fetched from ' + (vendor.data?.dbPath || 'DB'));
-    renderPhase(1);
-  }
-}
-
-async function proceedEligibility() {
-  // Confirm DB details and move straight to document upload
-  const ok = await agentAction('proceed_final_eligibility');
-  if (ok) {
-    toast('Details confirmed — proceeding to document upload');
-    addLog('DB details confirmed — moving to docs');
-    switchPhase(2);
-  }
-}
-
-async function confirmAndProceedDocs() {
-  const ok = await agentAction('proceed_final_eligibility');
-  if (ok) {
-    toast('Proceeding to document upload');
-    addLog('Moving to document upload');
-    switchPhase(2);
-  }
+async function doResendOtp() {
+  const v = document.getElementById('verifyPhone')?.value.trim() || vendor.data?.phone;
+  if (v) { const ok = await agentAction('submit_phone', v); if(ok){toast('OTP resent');renderPage(2);} }
 }
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 2 — DOCUMENT UPLOAD & OCR
-// Sequence: 1. Aadhaar/Voter ID → 2. Bank Passbook → 3. UPI QR
-// Each doc: agent sees image preview + editable OCR fields → Approve/Retry
-// On Approve: bot sends extracted details back to vendor
+// PAGE 3 — DATA CONSENT
 // ══════════════════════════════════════════════════════════════
+function p3(area) {
+  const d = vendor.data || {};
+  area.innerHTML = `
+    <div class="card">
+      <div class="card-title">📑 Data access consent</div>
+      <!-- Mirror of WhatsApp message sent to vendor -->
+      <div style="background:var(--green-lt);border:1px solid #c3e6d4;border-radius:8px;padding:10px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--green);margin-bottom:5px">📱 Message sent to vendor on WhatsApp</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.5">
+          "To verify your identity and check eligibility, we need permission to fetch your details from the Bank Account database. We will never access your password or initiate any transaction. Do you agree?"
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <span style="background:var(--green);color:#fff;border-radius:4px;padding:2px 8px;font-size:10px">I Agree</span>
+          <span style="background:var(--red-lt);color:var(--red);border-radius:4px;padding:2px 8px;font-size:10px">I Disagree</span>
+        </div>
+      </div>
+      ${d.consentGiven ? `
+        <div class="info-pill" style="margin-bottom:10px">✅ Vendor gave consent</div>
+        <button class="btn btn-green btn-full" onclick="goToPage(4)">Continue to data extraction →</button>
+      ` : `
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">Record vendor's response:</p>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="doConsent('yes')">✓ Vendor agrees</button>
+          <button class="btn btn-red" onclick="doConsent('no')">✗ Declined</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+async function doConsent(choice) {
+  const ok = await agentAction(choice==='yes' ? 'give_consent' : 'decline_consent');
+  if (ok) { addLog('Consent: ' + choice); if(choice==='yes') goToPage(4); else renderPage(3); }
+}
 
-// Doc config — each entry maps to a session docs key + field schema
+// ══════════════════════════════════════════════════════════════
+// PAGE 4 — DATA EXTRACTION
+// ══════════════════════════════════════════════════════════════
+function p4(area) {
+  const d = vendor.data || {};
+  area.innerHTML = `
+    <div class="card ${d.fetchedName ? 'card-green' : ''}">
+      <div class="card-title">🏦 Bank database — fetched details</div>
+      ${d.fetchedName ? `
+        <div class="data-row"><span class="data-key">Name</span><span class="data-val">${d.fetchedName}</span></div>
+        <div class="data-row"><span class="data-key">Account</span><span class="data-val redacted">${d.fetchedAccount||'XXXX-XXXX-XXXX'}</span></div>
+        <div class="data-row"><span class="data-key">Bank</span><span class="data-val">${d.fetchedBank||'—'}</span></div>
+        <div class="data-row"><span class="data-key">IFSC</span><span class="data-val">${d.fetchedIfsc||'—'}</span></div>
+        <div class="data-row" style="align-items:flex-start"><span class="data-key">Address</span><span class="data-val" style="font-size:10px;text-align:right;max-width:150px">${d.fetchedAddress||'—'}</span></div>
+        <button class="btn btn-green btn-full" style="margin-top:10px" onclick="doConfirmDetails()">
+          ✓ Details confirmed — proceed to documents →
+        </button>
+      ` : `
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
+          Fetching vendor's bank details after consent...
+        </p>
+        <div style="text-align:center;padding:16px;color:var(--text-2);font-size:11px">
+          ⏳ Waiting for bank DB response.<br/>
+          <button class="btn btn-gray" style="margin-top:10px" onclick="manualRefresh()">↺ Refresh</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+async function doConfirmDetails() {
+  const ok = await agentAction('proceed_final_eligibility');
+  if (ok) { addLog('DB details confirmed'); goToPage(5); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PAGE 5 — DOCUMENT UPLOAD & VERIFY
+// ══════════════════════════════════════════════════════════════
 const DOC_DEFS = [
-  {
-    key:     'ovd',
-    label:   'Identity Document (OVD)',
-    emoji:   '🪪',
-    state:   'AWAIT_AADHAAR',
-    sublabel: 'Aadhaar / Voter ID / Driving Licence / Ration Card / NREGA Job Card',
-    fields:  [
-      { key: 'ocrName',      label: 'Name',          placeholder: 'Full name from document' },
-      { key: 'ocrIdNumber',  label: 'ID Number',     placeholder: 'Document ID number', redact: true },
-      { key: 'ocrDob',       label: 'Date of Birth', placeholder: 'DD-MM-YYYY' },
-      { key: 'docTypeLabel', label: 'Document type', placeholder: 'e.g. Aadhaar Card' },
-    ],
-  },
-  {
-    key:     'qr',
-    label:   'UPI QR Code',
-    emoji:   '📱',
-    state:   'AWAIT_QR',
-    fields:  [
-      { key: 'ocrUpiId', label: 'UPI ID', placeholder: 'e.g. name@okaxis or 9876543210@ybl' },
-    ],
-    skippable: false,
-  },
+  { key:'ovd', label:'Identity Document (OVD)', emoji:'🪪',
+    sublabel:'Aadhaar / Voter ID / Driving Licence / Ration Card / NREGA Job Card',
+    fields:[
+      {key:'ocrName',      label:'Name',           placeholder:'Full name'},
+      {key:'ocrIdNumber',  label:'ID Number',      placeholder:'Document ID number', redact:true},
+      {key:'ocrDob',       label:'Date of Birth',  placeholder:'DD-MM-YYYY'},
+      {key:'docTypeLabel', label:'Document type',  placeholder:'e.g. Aadhaar Card'},
+    ]},
+  { key:'qr', label:'UPI QR Code', emoji:'📱',
+    fields:[
+      {key:'ocrUpiId', label:'UPI ID', placeholder:'e.g. name@okaxis'},
+    ]},
 ];
 
-function renderPhase2(area, bar, action) {
-  const docs = vendor.data.docs || {};
-
-  // Derive active doc from session state
-  const stateToDoc = { AWAIT_AADHAAR: 0, AWAIT_PAN: 0, AWAIT_QR: 1 };
-  let activeIdx = stateToDoc[vendor.state] ?? 0;
-  // If all docs present, show the first non-approved one
-  DOC_DEFS.forEach((d, i) => {
-    if (docs[d.key]?.agentApproved) return;
-    if (docs[d.key] && !docs[d.key].agentApproved) activeIdx = i;
-  });
-  // If none pending, stay at last
-  if (DOC_DEFS.every((d, i) => docs[d.key]?.agentApproved)) activeIdx = 1;
+function p5(area) {
+  const docs = vendor.data?.docs || {};
+  const allDone = DOC_DEFS.every(d => docs[d.key]?.agentApproved);
 
   area.innerHTML = `
-    <!-- 3-step doc progress bar -->
+    <!-- Progress dots -->
     <div class="card" style="padding:10px 12px">
       <div style="display:flex;align-items:center;gap:0">
-        ${DOC_DEFS.map((d, i) => {
-          const docData = docs[d.key];
-          const done    = docData?.agentApproved;
-          const waiting = docData && !docData.agentApproved && docData.status !== 'retry';
-          const retry   = docData?.status === 'retry';
-          const active  = i === activeIdx;
-          const bg   = done    ? 'var(--green)'
-                     : retry   ? 'var(--red)'
-                     : active  ? 'var(--green)'
-                     : 'var(--border)';
-          const col  = (done || active) ? '#fff' : retry ? '#fff' : 'var(--gray)';
-          const icon = done ? '✓' : retry ? '!' : (i + 1);
+        ${DOC_DEFS.map((d,i) => {
+          const done = docs[d.key]?.agentApproved;
+          const has  = !!docs[d.key];
+          const bg = done ? 'var(--green)' : has ? 'var(--amber)' : 'var(--border)';
+          const col = done||has ? '#fff' : 'var(--gray)';
           return `
             <div style="flex:1;text-align:center">
-              <div style="width:24px;height:24px;border-radius:50%;margin:0 auto 3px;
-                   display:flex;align-items:center;justify-content:center;
-                   font-size:11px;font-weight:700;background:${bg};color:${col}">
-                ${icon}
+              <div style="width:22px;height:22px;border-radius:50%;margin:0 auto 3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:${bg};color:${col}">
+                ${done ? '✓' : i+1}
               </div>
-              <div style="font-size:9px;color:${done ? 'var(--green)' : active ? 'var(--text)' : 'var(--text-2)'};font-weight:${active?700:400}">
-                ${d.emoji} ${d.label.split(' ')[0]}
-              </div>
+              <div style="font-size:9px;color:${done?'var(--green)':'var(--text-2)'}">${d.emoji} ${d.label.split(' ')[0]}</div>
             </div>
-            ${i < 2 ? `<div style="flex:0 0 10px;height:2px;background:${done?'var(--green)':'var(--border)'};margin-bottom:14px"></div>` : ''}
+            ${i<DOC_DEFS.length-1 ? `<div style="flex:0 0 10px;height:2px;background:${done?'var(--green)':'var(--border)'};margin-bottom:14px"></div>` : ''}
           `;
         }).join('')}
       </div>
     </div>
 
-    <!-- Doc cards: one per document -->
-    ${DOC_DEFS.map((def, i) => renderDocCard(def, docs[def.key], i, activeIdx)).join('')}
+    ${DOC_DEFS.map(def => renderDocCard5(def, docs[def.key])).join('')}
 
-    <!-- All approved summary -->
-    ${DOC_DEFS.every(d => docs[d.key]?.agentApproved) ? `
-    <div class="card card-green" style="text-align:center;padding:16px">
-      <div style="font-size:24px;margin-bottom:6px">✅</div>
-      <div style="font-size:13px;font-weight:700;color:var(--green)">All documents verified</div>
-      <div style="font-size:11px;color:var(--text-2);margin-top:4px">Vendor has been notified. Proceeding to Video KYC.</div>
-    </div>` : ''}
+    ${allDone ? `
+      <div class="card card-green" style="text-align:center;padding:16px">
+        <div style="font-size:20px;margin-bottom:6px">✅</div>
+        <div style="font-size:12px;font-weight:700;color:var(--green)">All documents verified</div>
+        <button class="btn btn-green btn-full" style="margin-top:10px" onclick="goToPage(6)">Continue to references →</button>
+      </div>
+    ` : ''}
   `;
 }
 
-function renderDocCard(def, docData, idx, activeIdx) {
-  const isActive   = idx === activeIdx;
-  const isApproved = docData?.agentApproved;
-  const isPending  = docData && !isApproved && docData.status !== 'retry';
-  const isRetry    = docData?.status === 'retry';
-  const isWaiting  = !docData;
-
-  // Collapsed approved card
-  if (isApproved) {
+function renderDocCard5(def, docData) {
+  if (docData?.agentApproved) {
     return `
-      <div class="card card-green" style="padding:10px 14px">
+      <div class="card card-green" style="padding:10px 12px">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:18px">${def.emoji}</span>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:16px">${def.emoji}</span>
             <div>
-              <div style="font-size:12px;font-weight:700;color:var(--green)">${def.label}</div>
-              <div style="font-size:11px;color:var(--text-2)">✅ Verified — vendor notified</div>
+              <div style="font-size:11px;font-weight:700;color:var(--green)">${def.label}</div>
+              <div style="font-size:10px;color:var(--text-2)">✅ Verified — vendor notified</div>
             </div>
           </div>
-          <button class="btn btn-gray" style="font-size:11px;padding:4px 8px"
-                  onclick="reopenDoc('${def.key}')">Edit</button>
         </div>
       </div>`;
   }
-
-  // Waiting for vendor to send image
-  if (isWaiting) {
+  if (!docData) {
     return `
-      <div class="card" style="opacity:${isActive ? 1 : 0.45}">
+      <div class="card">
         <div class="card-title">${def.emoji} ${def.label}</div>
-        <div class="ocr-img" style="flex-direction:column;gap:6px">
-          <span style="font-size:20px">📷</span>
-          <span>Waiting for vendor to send photo...</span>
+        ${def.sublabel ? `<div style="font-size:10px;color:var(--text-2);margin-bottom:8px">${def.sublabel}</div>` : ''}
+        <div style="text-align:center;padding:14px;color:var(--text-2);font-size:11px;border:1.5px dashed var(--border);border-radius:8px">
+          📷 Waiting for vendor to send photo
         </div>
-        ${isActive ? `
-          <div class="btn-row" style="margin-top:8px">
-            <button class="btn btn-gray btn-full" onclick="nudgeVendor('${def.key}')">
-              💬 Remind vendor to send photo
-            </button>
-          </div>
-        ` : ''}
+        <button class="btn btn-gray btn-full" style="margin-top:8px;font-size:11px" onclick="doNudgeDoc('${def.key}','${def.label}')">
+          💬 Remind vendor to send photo
+        </button>
       </div>`;
   }
-
-  // Image received — show OCR review panel
-  const ocrRaw  = docData.ocrRaw || '';
-  const ts      = docData.receivedAt ? new Date(docData.receivedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
-  const cardClass = isRetry ? 'card card-amber' : 'card';
-
+  // Has doc — show review
+  const ts = docData.receivedAt ? new Date(docData.receivedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
   return `
-    <div class="${cardClass}" id="docCard-${def.key}">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-        <span>${def.emoji} ${def.label} ${isRetry ? '— retry requested' : '— review'}</span>
+    <div class="card ${docData.status==='retry'?'card-amber':''}">
+      <div class="card-title" style="justify-content:space-between">
+        <span>${def.emoji} ${def.label} — review</span>
         ${ts ? `<span style="font-size:10px;color:var(--text-2);font-weight:400">${ts}</span>` : ''}
       </div>
-
-      <!-- Approve/Retry always at TOP so they are always visible -->
-      <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button class="btn btn-green" style="flex:1;font-size:13px;padding:10px"
-                onclick="approveDoc('${def.key}')">
-          ✓ Approve &amp; notify vendor
-        </button>
-        <button class="btn btn-amber" style="flex:0 0 auto;font-size:12px"
-                onclick="retryDoc('${def.key}')">
-          🔄 Retry
-        </button>
+      <!-- Approve/Retry at top so always visible -->
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-green" onclick="doApproveDoc('${def.key}')">✓ Approve &amp; notify</button>
+        <button class="btn btn-amber" onclick="doRetryDoc('${def.key}')">🔄 Retry</button>
       </div>
-
-      <!-- Editable OCR fields — edit before approving if needed -->
-      <div id="ocrFields-${def.key}">
-        ${def.fields.map(f => `
-          <div class="ocr-field">
-            <label>${f.label}</label>
-            <input type="text" id="ocr-${def.key}-${f.key}"
-                   value="${(docData[f.key] || '').replace(/"/g, '&quot;')}"
-                   placeholder="${f.placeholder}"
-                   style="${f.redact ? 'font-family:monospace;letter-spacing:1px' : ''}"/>
-          </div>`).join('')}
-      </div>
-
-      <!-- OCR raw — collapsed by default, expandable -->
-      ${ocrRaw ? `
-        <details style="margin-top:8px">
-          <summary style="font-size:10px;color:var(--text-2);cursor:pointer;user-select:none">
-            View raw OCR text
-          </summary>
-          <div style="background:var(--gray-lt);border-radius:6px;padding:6px 8px;font-size:10px;
-                      color:var(--text-2);margin-top:4px;max-height:80px;overflow-y:auto;
-                      line-height:1.5;font-family:monospace;word-break:break-all">
-            ${ocrRaw.slice(0, 300).replace(/\n/g, ' · ')}
+      <!-- Editable OCR fields -->
+      ${def.fields.map(f => `
+        <div class="ocr-field">
+          <label>${f.label}</label>
+          <input type="text" id="ocr-${def.key}-${f.key}"
+                 value="${(docData[f.key]||'').replace(/"/g,'&quot;')}"
+                 placeholder="${f.placeholder}"
+                 style="${f.redact?'font-family:monospace;letter-spacing:1px':''}"/>
+        </div>`).join('')}
+      ${docData.ocrRaw ? `
+        <details style="margin-top:6px">
+          <summary style="font-size:10px;color:var(--text-2);cursor:pointer">View raw OCR</summary>
+          <div style="background:var(--gray-lt);border-radius:6px;padding:5px 7px;font-size:9px;color:var(--text-2);margin-top:4px;font-family:monospace;max-height:60px;overflow-y:auto;word-break:break-all">
+            ${docData.ocrRaw.slice(0,200).replace(/\n/g,' · ')}
           </div>
-        </details>` : `
-        <div style="font-size:11px;color:var(--text-2);margin-top:6px">
-          📄 Image received — OCR could not extract text. Edit the fields above manually.
-        </div>`}
+        </details>` : ''}
     </div>`;
 }
 
-// ── Doc actions ────────────────────────────────────────────────────────────
-async function approveDoc(docKey) {
-  const def    = DOC_DEFS.find(d => d.key === docKey);
+async function doApproveDoc(docKey) {
+  const def = DOC_DEFS.find(d=>d.key===docKey);
   if (!def) return;
-
-  // Collect all edited field values
   const fields = {};
-  def.fields.forEach(f => {
-    const el = document.getElementById(`ocr-${docKey}-${f.key}`);
-    if (el) fields[f.key] = el.value.trim();
-  });
-
-  const ok = await agentAction('approve_document', JSON.stringify({ docKey, fields }));
-  if (ok) {
-    toast(`${def.emoji} ${def.label} approved — vendor notified`);
-    addLog(`Approved: ${def.label} — ${Object.values(fields).filter(Boolean).join(', ')}`);
-    renderPhase(2);
-  }
+  def.fields.forEach(f => { const el=document.getElementById(`ocr-${docKey}-${f.key}`); if(el) fields[f.key]=el.value.trim(); });
+  const ok = await agentAction('approve_document', JSON.stringify({docKey, fields}));
+  if (ok) { toast(def.emoji+' '+def.label+' approved'); addLog('Approved: '+def.label); renderPage(5); }
 }
-
-async function retryDoc(docKey) {
-  const def = DOC_DEFS.find(d => d.key === docKey);
-  if (!def) return;
+async function doRetryDoc(docKey) {
+  const def = DOC_DEFS.find(d=>d.key===docKey);
   const ok = await agentAction('retry_document', docKey);
-  if (ok) {
-    toast('Vendor asked to resend ' + def.label);
-    addLog('Retry requested: ' + def.label);
-    renderPhase(2);
-  }
+  if (ok) { toast('Retry requested: '+(def?.label||docKey)); renderPage(5); }
 }
-
-async function nudgeVendor(docKey) {
-  const def  = DOC_DEFS.find(d => d.key === docKey);
-  if (!def) return;
-  const ok = await agentAction('send_custom_message',
-    'Please send a clear photo of your ' + def.label + '.\n\n' +
-    'Tap the attachment icon, select Gallery or Camera, and send the photo.'
-  );
-  if (ok) { toast('Reminder sent to vendor'); addLog('Nudge sent: ' + def.label); }
+async function doNudgeDoc(docKey, label) {
+  const ok = await agentAction('send_custom_message', 'Please send a clear photo of your '+label+'.\n\nTap the attachment icon → Camera or Gallery → Send.');
+  if (ok) toast('Reminder sent');
 }
-
-async function reopenDoc(docKey) {
-  // Reset approved flag so agent can re-edit
-  // For now just re-render (the edit button shows it again)
-  toast('You can re-edit by scrolling to that document', true);
-}
-
-// agentSkipQR removed — QR/UPI is mandatory for PM SVANidhi disbursement
-
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 3 — PROFILING & ELIGIBILITY
-// Sub-steps: References → Financial Check → Eligibility → Loan Selection
+// PAGE 6 — REFERENCES
 // ══════════════════════════════════════════════════════════════
-
-function renderPhase3(area, bar, action) {
+function p6(area) {
   const d = vendor.data || {};
-  const elig = d.eligibility || {};
-
-  // Derive sub-step from live session state
-  const subStep =
-    vendor.state === 'LOAN_SELECTION'     ? 'loan'    :
-    vendor.state === 'PROFILING_FINANCE'  ? 'finance' :
-    (d.ref1Name && d.ref2Name)            ? 'finance' : 'refs';
-
-  const steps      = ['refs', 'finance', 'loan'];
-  const stepLabels = ['References', 'Financial Check', 'Loan Amount'];
-  const curIdx     = steps.indexOf(subStep);
-
+  const refsOk = d.ref1Name && d.ref2Name;
   area.innerHTML = `
-    <!-- Progress stepper -->
-    <div class="card" style="padding:10px 16px">
-      <div style="display:flex;align-items:center">
-        ${stepLabels.map((lbl, i) => `
-          <div style="flex:1;text-align:center">
-            <div style="width:22px;height:22px;border-radius:50%;margin:0 auto 3px;
-                 display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
-                 background:${i < curIdx ? 'var(--green)' : i === curIdx ? 'var(--green)' : 'var(--border)'};
-                 color:${i <= curIdx ? '#fff' : 'var(--gray)'}">
-              ${i < curIdx ? '✓' : i + 1}
-            </div>
-            <div style="font-size:9px;color:${i <= curIdx ? 'var(--green)' : 'var(--text-2)'}">${lbl}</div>
-          </div>
-          ${i < 2 ? `<div style="flex:0 0 8px;height:2px;background:${i < curIdx ? 'var(--green)' : 'var(--border)'};margin-bottom:14px"></div>` : ''}
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- STEP 1: References -->
-    <div class="card ${(d.ref1Name && d.ref2Name) ? 'card-green' : ''}">
+    <div class="card ${refsOk ? 'card-green' : ''}">
       <div class="card-title">👥 References</div>
-      ${(d.ref1Name && d.ref2Name) ? `
-        <div class="data-row"><span class="data-key">Reference</span>
-          <span class="data-val">${d.ref1Name} · ${d.ref1Phone || '—'}</span></div>
-        <div class="data-row"><span class="data-key">Fallback</span>
-          <span class="data-val">${d.ref2Name} · ${d.ref2Phone || '—'}</span></div>
-        <button class="btn btn-gray btn-full" style="margin-top:8px" onclick="editRefs()">✏️ Edit references</button>
+      ${refsOk ? `
+        <div class="data-row"><span class="data-key">Reference</span><span class="data-val">${d.ref1Name} · ${d.ref1Phone||'—'}</span></div>
+        <div class="data-row"><span class="data-key">Fallback</span><span class="data-val">${d.ref2Name} · ${d.ref2Phone||'—'}</span></div>
+        <div class="info-pill" style="margin-top:10px">✅ References saved</div>
+        <button class="btn btn-green btn-full" style="margin-top:10px" onclick="goToPage(7)">Continue to financial check →</button>
       ` : `
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:12px">
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:12px">
           Collect two contacts: a reference (neighbour / fellow vendor) and a fallback (family member).
         </p>
         <div class="field"><label>Reference — Full Name</label>
-          <input type="text" id="ref1Name" placeholder="e.g. Suresh Kumar" value="${d.ref1Name || ''}"/></div>
-        <div class="field"><label>Reference — Mobile Number</label>
-          <input type="tel" id="ref1Phone" placeholder="10-digit number" maxlength="10" value="${d.ref1Phone || ''}"/></div>
-        <div style="height:1px;background:var(--border);margin:8px 0"></div>
+          <input type="text" id="ref1Name" placeholder="e.g. Suresh Kumar" value="${d.ref1Name||''}"/></div>
+        <div class="field"><label>Reference — Phone</label>
+          <input type="tel" id="ref1Phone" placeholder="10-digit number" maxlength="10" value="${d.ref1Phone||''}"/></div>
+        <div style="height:1px;background:var(--border);margin:4px 0 12px"></div>
         <div class="field"><label>Fallback Contact — Full Name</label>
-          <input type="text" id="ref2Name" placeholder="e.g. Meena Devi" value="${d.ref2Name || ''}"/></div>
-        <div class="field"><label>Fallback Contact — Mobile Number</label>
-          <input type="tel" id="ref2Phone" placeholder="10-digit number" maxlength="10" value="${d.ref2Phone || ''}"/></div>
-        <button class="btn btn-green btn-full" style="margin-top:4px" onclick="saveRefs()">
-          💾 Save references &amp; continue
-        </button>
+          <input type="text" id="ref2Name" placeholder="e.g. Meena Devi" value="${d.ref2Name||''}"/></div>
+        <div class="field"><label>Fallback Contact — Phone</label>
+          <input type="tel" id="ref2Phone" placeholder="10-digit number" maxlength="10" value="${d.ref2Phone||''}"/></div>
+        <button class="btn btn-green btn-full" onclick="doSaveRefs()">💾 Save references</button>
       `}
     </div>
+  `;
+}
+async function doSaveRefs() {
+  const r1n=document.getElementById('ref1Name')?.value.trim();
+  const r1p=document.getElementById('ref1Phone')?.value.trim().replace(/\D/g,'');
+  const r2n=document.getElementById('ref2Name')?.value.trim();
+  const r2p=document.getElementById('ref2Phone')?.value.trim().replace(/\D/g,'');
+  if (!r1n||!r1p||r1p.length!==10) { toast('Enter Reference name and valid 10-digit number',false); return; }
+  if (!r2n||!r2p||r2p.length!==10) { toast('Enter Fallback Contact name and valid 10-digit number',false); return; }
+  const ok = await agentAction('save_references', JSON.stringify({ref1Name:r1n,ref1Phone:r1p,ref2Name:r2n,ref2Phone:r2p}));
+  if (ok) { addLog('References: '+r1n+' / '+r2n); goToPage(7); }
+}
 
-    <!-- STEP 2: Financial check -->
-    <div class="card ${elig.annualRevenue ? 'card-green' : ''}"
-         style="opacity:${(d.ref1Name && d.ref2Name) ? 1 : 0.4};pointer-events:${(d.ref1Name && d.ref2Name) ? 'auto' : 'none'}">
-      <div class="card-title">🏦 Financial check</div>
-      ${elig.annualRevenue ? `
-        <div class="data-row"><span class="data-key">Est. annual income</span>
-          <span class="data-val">₹${elig.annualRevenue.toLocaleString('en-IN')}</span></div>
-        <div class="data-row"><span class="data-key">Tranche</span>
-          <span class="data-val">${elig.trancheLabel || 'Tranche 1'}</span></div>
-        <div class="data-row"><span class="data-key">Max eligible</span>
-          <span class="data-val" style="color:var(--green);font-weight:700;font-size:15px">
-            ₹${(elig.maxLoan || 10000).toLocaleString('en-IN')}
-          </span></div>
+// ══════════════════════════════════════════════════════════════
+// PAGE 7 — FINANCIAL CONSENT
+// ══════════════════════════════════════════════════════════════
+function p7(area) {
+  const d = vendor.data || {};
+  area.innerHTML = `
+    <div class="card ${d.financialCheckConsent!==undefined ? 'card-green' : ''}">
+      <div class="card-title">🏦 Financial history check</div>
+      <!-- Mirror of WhatsApp message -->
+      <div style="background:var(--green-lt);border:1px solid #c3e6d4;border-radius:8px;padding:10px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--green);margin-bottom:5px">📱 Message sent to vendor on WhatsApp</div>
+        <div style="font-size:11px;color:var(--text);line-height:1.5">
+          "To offer you the highest eligible loan amount, we would like to check your last 12 months of transaction history. This is completely secure. Do you give us permission?"
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <span style="background:var(--green);color:#fff;border-radius:4px;padding:2px 8px;font-size:10px">Yes, I agree</span>
+          <span style="background:var(--gray-lt);color:var(--text);border-radius:4px;padding:2px 8px;font-size:10px;border:1px solid var(--border)">No, skip this</span>
+        </div>
+      </div>
+      ${d.financialCheckConsent !== undefined ? `
+        <div class="info-pill" style="margin-bottom:10px">✅ Financial check: ${d.financialCheckConsent ? 'consented' : 'skipped'}</div>
+        <button class="btn btn-green btn-full" onclick="goToPage(8)">Continue to loan eligibility →</button>
       ` : `
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Ask vendor: <em>"May we check your last 12 months of transactions to determine your exact loan limit?"</em>
-        </p>
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">Record vendor's response:</p>
         <div class="btn-row">
-          <button class="btn btn-green" onclick="runFinancialCheck('yes')">✓ Vendor consents</button>
-          <button class="btn btn-gray"  onclick="runFinancialCheck('no')">Skip</button>
+          <button class="btn btn-green" onclick="doFinancial('yes')">✓ Vendor consents</button>
+          <button class="btn btn-gray" onclick="doFinancial('no')">Skip</button>
         </div>
       `}
     </div>
+  `;
+}
+async function doFinancial(choice) {
+  const ok = await agentAction('financial_consent', choice);
+  if (ok) { addLog('Financial check: '+choice); goToPage(8); }
+}
 
-    <!-- STEP 3: Loan amount selection -->
-    <div class="card ${d.loanAmount ? 'card-green' : ''}"
-         style="opacity:${elig.maxLoan ? 1 : 0.4};pointer-events:${elig.maxLoan ? 'auto' : 'none'}">
+// ══════════════════════════════════════════════════════════════
+// PAGE 8 — LOAN ELIGIBILITY
+// ══════════════════════════════════════════════════════════════
+function p8(area) {
+  const d    = vendor.data || {};
+  const elig = d.eligibility || {};
+  area.innerHTML = `
+    ${elig.maxLoan ? `
+      <div class="info-pill" style="justify-content:center">
+        ✓ Eligible: ₹${LOAN().toLocaleString('en-IN')} · Tranche ${elig.tranche||1} · 20% of ₹1.5L revenue
+      </div>
+    ` : ''}
+
+    <div class="card ${elig.maxLoan ? 'card-green' : ''}">
+      <div class="card-title">💰 Eligibility result</div>
+      ${elig.maxLoan ? `
+        <div class="data-row"><span class="data-key">Est. annual income</span><span class="data-val">₹${(elig.annualRevenue||ANNUAL_REV).toLocaleString('en-IN')}</span></div>
+        <div class="data-row"><span class="data-key">Tranche</span><span class="data-val">${elig.trancheLabel||'Tranche 1'}</span></div>
+        <div class="data-row"><span class="data-key">Max eligible</span><span class="data-val" style="color:var(--green);font-weight:700;font-size:15px">₹${elig.maxLoan.toLocaleString('en-IN')}</span></div>
+      ` : `
+        <p style="font-size:11px;color:var(--text-2)">Eligibility is calculated after financial check. Please wait or refresh.</p>
+        <button class="btn btn-gray btn-full" style="margin-top:10px" onclick="manualRefresh()">↺ Refresh</button>
+      `}
+    </div>
+
+    <div class="card ${d.loanAmount ? 'card-green' : ''}" style="opacity:${elig.maxLoan?1:0.4};pointer-events:${elig.maxLoan?'auto':'none'}">
       <div class="card-title">🎯 Loan amount selection</div>
       ${d.loanAmount ? `
         <div class="data-row"><span class="data-key">Requested amount</span>
-          <span class="data-val" style="color:var(--green);font-weight:700;font-size:16px">
-            ₹${d.loanAmount.toLocaleString('en-IN')}
-          </span></div>
-        <button class="btn btn-gray btn-full" style="margin-top:8px" onclick="editLoanAmount()">✏️ Change amount</button>
-        <button class="btn btn-green btn-full" style="margin-top:6px" onclick="confirmLoanAndStartKYC()">
+          <span class="data-val" style="color:var(--green);font-weight:700;font-size:16px">₹${d.loanAmount.toLocaleString('en-IN')}</span>
+        </div>
+        <button class="btn btn-green btn-full" style="margin-top:10px" onclick="doConfirmLoan()">
           ✓ Confirm &amp; start KYC readiness check →
         </button>
       ` : `
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Vendor selects desired amount between ₹5,000 and ₹${((elig.maxLoan) || 10000).toLocaleString('en-IN')}.
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
+          Vendor selects desired amount between ₹5,000 and ₹${(elig.maxLoan||MAX_LOAN).toLocaleString('en-IN')}.
         </p>
         <div class="field">
           <label>Desired loan amount (₹)</label>
-          <input type="number" id="loanAmtInput"
-                 min="5000" max="${elig.maxLoan || 10000}" step="1000"
-                 value="${elig.maxLoan || 10000}" style="font-size:18px;font-weight:700;color:var(--green)"/>
-          <div style="font-size:11px;color:var(--text-2);margin-top:3px">
-            Min ₹5,000 · Max ₹${(elig.maxLoan || 10000).toLocaleString('en-IN')}
-          </div>
+          <input type="number" id="loanAmtInput" min="5000" max="${elig.maxLoan||MAX_LOAN}" step="1000"
+                 value="${elig.maxLoan||MAX_LOAN}" style="font-size:16px;font-weight:700;color:var(--green)"/>
+          <div class="field-note">Min ₹5,000 · Max ₹${(elig.maxLoan||MAX_LOAN).toLocaleString('en-IN')}</div>
         </div>
-        <button class="btn btn-green btn-full" onclick="submitLoanAmount()">
-          ✓ Set loan amount
-        </button>
+        <button class="btn btn-green btn-full" onclick="doSetLoan()">✓ Set loan amount</button>
       `}
     </div>
   `;
 }
-
-async function saveRefs() {
-  const r1n = document.getElementById('ref1Name')?.value.trim();
-  const r1p = document.getElementById('ref1Phone')?.value.trim().replace(/\D/g,'');
-  const r2n = document.getElementById('ref2Name')?.value.trim();
-  const r2p = document.getElementById('ref2Phone')?.value.trim().replace(/\D/g,'');
-  if (!r1n || !r1p || r1p.length !== 10) { toast('Enter Reference name and valid 10-digit number', false); return; }
-  if (!r2n || !r2p || r2p.length !== 10) { toast('Enter Fallback Contact name and valid 10-digit number', false); return; }
-
-  const refs = { ref1Name: r1n, ref1Phone: r1p, ref2Name: r2n, ref2Phone: r2p };
-  const ok = await agentAction('save_references', JSON.stringify(refs));
-  if (ok) {
-    toast('References saved — financial check prompt sent');
-    addLog('References: ' + r1n + ' / ' + r2n);
-    renderPhase(3);
-  }
-}
-
-function editRefs() { vendor.data.ref1Name = ''; vendor.data.ref2Name = ''; renderPhase(3); }
-function editLoanAmount() { vendor.data.loanAmount = null; renderPhase(3); }
-
-async function runFinancialCheck(choice) {
-  const ok = await agentAction('financial_consent', choice);
-  if (ok) {
-    toast(choice === 'yes' ? 'Financial check running...' : 'Skipped — default eligibility applied');
-    addLog('Financial check: ' + choice);
-    renderPhase(3);
-  }
-}
-
-async function submitLoanAmount() {
-  const amt = parseInt(document.getElementById('loanAmtInput')?.value || 0);
-  const max = vendor.data.eligibility?.maxLoan || 10000;
-  if (amt < 5000 || amt > max) { toast('Amount must be ₹5,000 to ₹' + max.toLocaleString('en-IN'), false); return; }
+async function doSetLoan() {
+  const amt = parseInt(document.getElementById('loanAmtInput')?.value||0);
+  const max = vendor.data?.eligibility?.maxLoan || MAX_LOAN;
+  if (amt<5000||amt>max) { toast('Amount must be ₹5,000 to ₹'+max.toLocaleString('en-IN'),false); return; }
   const ok = await agentAction('set_loan_amount', String(amt));
-  if (ok) {
-    toast('Loan amount sent: ₹' + amt.toLocaleString('en-IN'));
-    addLog('Loan amount set: ₹' + amt.toLocaleString('en-IN'));
-    renderPhase(3);
-  }
+  if (ok) { addLog('Loan amount: ₹'+amt.toLocaleString('en-IN')); renderPage(8); }
 }
-
-async function confirmLoanAndStartKYC() {
+async function doConfirmLoan() {
   const ok = await agentAction('confirm_loan');
-  if (ok) {
-    toast('Loan confirmed — sending KYC readiness check to vendor');
-    addLog('Loan confirmed, KYC readiness check sent');
-    switchPhase(4);
-  }
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// PHASE 4 — VIDEO KYC
-// ══════════════════════════════════════════════════════════════
-function renderPhase4(area, bar, action) {
-  area.innerHTML = `
-    <div class="card card-amber">
-      <div class="card-title">📹 Pre-KYC check</div>
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-        Before sending the link, the bot will ask: "Are you ready? Please be in a quiet, well-lit place."
-      </p>
-      <button class="btn btn-amber btn-full" onclick="sendKycReadyCheck()">
-        Send readiness check to vendor
-      </button>
-    </div>
-
-    <div class="card" id="kycInstructCard" style="display:none">
-      <div class="card-title">📷 KYC instructions sent</div>
-      <div style="background:var(--green-lt);border-radius:8px;padding:10px;font-size:12px;color:var(--green);margin-bottom:10px">
-        ✓ How-to-KYC image sent to vendor's WhatsApp
-      </div>
-      <p style="font-size:12px;color:var(--text-2)">Vendor instructions:</p>
-      <ol style="font-size:12px;color:var(--text-2);margin:8px 0 0 16px;line-height:1.8">
-        <li>Have Aadhaar/Voter ID in hand</li>
-        <li>Click the link sent on WhatsApp</li>
-        <li>Hold ID next to face when officer asks</li>
-      </ol>
-    </div>
-
-    <div class="card" id="kycLinkCard" style="display:none">
-      <div class="card-title">🔗 Video call</div>
-      <div class="field">
-        <label>KYC Meeting Link (auto-generated)</label>
-        <input type="text" id="kycLink" readonly
-               value="https://meet.pmsvanidhi.gov.in/live-kyc-${Math.random().toString(36).slice(-6)}"/>
-      </div>
-      <button class="btn btn-green btn-full" onclick="sendKycLink()">
-        📤 Send link to vendor's WhatsApp
-      </button>
-    </div>
-
-    <div class="card" id="kycApproveCard" style="display:none">
-      <div class="card-title">✅ KYC complete</div>
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-        Once video call is finished and identity is confirmed, click Approve.
-      </p>
-      <button class="btn btn-green btn-full" onclick="approveKyc()">
-        ✓ Approve KYC — trigger loan approval
-      </button>
-    </div>
-  `;
-}
-
-async function sendKycReadyCheck() {
-  await agentAction('send_custom_message', 'Are you ready to start the Video KYC? Please make sure you are in a quiet, well-lit place with your Aadhaar card or Voter ID in hand. Reply "Ready" when you are set.');
-  document.getElementById('kycInstructCard').style.display = 'block';
-  document.getElementById('kycLinkCard').style.display     = 'block';
-  toast('Readiness check + instructions sent');
-}
-
-async function sendKycLink() {
-  const link = document.getElementById('kycLink').value;
-  await agentAction('send_custom_message', 'Your Video KYC link: ' + link + '\n\nClick to join. Have your ID card ready to hold next to your face for the officer. The call takes 3-5 minutes.');
-  document.getElementById('kycApproveCard').style.display = 'block';
-  toast('KYC link sent to vendor');
-}
-
-async function approveKyc() {
-  const ok = await agentAction('complete_kyc');
-  if (ok) { toast('KYC approved — loan approval triggered'); switchPhase(5); }
+  if (ok) { addLog('Loan confirmed — KYC readiness check sent'); goToPage(9); }
 }
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 4 — VIDEO KYC
-// 4 linear stages tracked in UI:
-//   1. Readiness check sent   2. Vendor confirmed ready
-//   3. Link sent              4. Agent approves
+// PAGE 9 — KYC VIDEO
 // ══════════════════════════════════════════════════════════════
-
-function renderPhase4(area, bar, action) {
-  const d    = vendor.data || {};
-  const kyc  = d.kyc || {};
-
-  // Derive KYC stage — vendor no longer taps done, agent approves directly
+function p9(area) {
+  const d   = vendor.data || {};
+  const kyc = d.kyc || {};
   const stage =
-    kyc.agentApproved              ? 3 :
-    kyc.link                       ? 2 :
-    vendor.state === 'VIDEO_KYC'   ? 2 :
-    vendor.state === 'KYC_READINESS' ? 1 :
-    0;  // not started
+    kyc.agentApproved                  ? 4 :
+    kyc.videoMediaId                   ? 3 :
+    vendor.state==='AWAIT_KYC_VIDEO'   ? 2 :
+    vendor.state==='VIDEO_KYC'         ? 2 :
+    vendor.state==='KYC_READINESS'     ? 1 : 0;
 
-  const stageLabels = ['Not started', 'Readiness sent', 'Call in progress', 'Approved'];
-  const stageColors = ['var(--border)', 'var(--amber)', 'var(--green)', 'var(--green)'];
+  const stageColors = ['var(--border)','var(--amber)','var(--blue)','var(--amber)','var(--green)'];
+  const stageLabels = ['Not started','Readiness sent','Instructions sent','Video received','Approved'];
 
   area.innerHTML = `
-    <!-- KYC stage progress bar -->
-    <div class="card" style="padding:10px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:600;color:var(--text-2)">KYC Status</span>
-        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;
-              background:${stageColors[stage]};color:${stage === 0 ? 'var(--gray)' : '#fff'}">
-          ${stageLabels[stage]}
-        </span>
+    <!-- Stage indicator -->
+    <div class="card" style="padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:10px;font-weight:600;color:var(--text-2)">KYC Status</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${stageColors[stage]};color:${stage===0?'var(--gray)':'#fff'}">${stageLabels[stage]}</span>
       </div>
       <div style="display:flex;gap:3px">
-        ${[1,2,3].map(i => `
-          <div style="flex:1;height:5px;border-radius:3px;
-               background:${i <= stage ? stageColors[Math.min(stage, 3)] : 'var(--border)'}"></div>
-        `).join('')}
+        ${[1,2,3,4].map(i=>`<div style="flex:1;height:4px;border-radius:2px;background:${i<=stage?stageColors[Math.min(stage,4)]:'var(--border)'}"></div>`).join('')}
       </div>
     </div>
 
-    <!-- STAGE 1: Readiness check -->
-    <div class="card ${stage >= 1 ? 'card-green' : ''}">
+    <!-- Stage 1: Readiness check -->
+    <div class="card ${stage>=1?'card-green':''}">
       <div class="card-title">🟡 Stage 1 — Readiness check</div>
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
+      <p style="font-size:11px;color:var(--text-2);margin-bottom:10px">
         Bot asks vendor: <em>"Are you in a quiet, well-lit place with your ID card ready?"</em>
       </p>
-      ${stage >= 1
-        ? '<div style="font-size:12px;color:var(--green);font-weight:600">✅ Readiness check sent to vendor</div>'
-        : `<button class="btn btn-amber btn-full" onclick="sendReadinessCheck()">
-             📩 Send readiness check to vendor
-           </button>`}
+      ${stage>=1
+        ? `<div class="info-pill">✅ Readiness check sent</div>`
+        : `<button class="btn btn-amber btn-full" onclick="doKycReadiness()">📩 Send readiness check</button>`}
     </div>
 
-    <!-- STAGE 2: Instructions sent + waiting for vendor video -->
-    <div class="card ${stage >= 2 ? 'card-green' : ''}"
-         style="opacity:${stage >= 1 ? 1 : 0.4};pointer-events:${stage >= 1 ? 'auto' : 'none'}">
-      <div class="card-title">📹 Stage 2 — Send instructions &amp; await video</div>
-      ${stage >= 2 ? `
-        <div style="font-size:12px;color:var(--green);margin-bottom:10px;font-weight:600">
-          ✅ Instructions sent — waiting for vendor to upload video
-        </div>
-        <div style="background:var(--green-lt);border-radius:8px;padding:10px 12px;font-size:11px;
-                    color:var(--text-2);line-height:1.6">
-          <div style="font-weight:600;color:var(--text);margin-bottom:4px">Vendor was asked to:</div>
-          1. Face the camera and blink twice<br/>
-          2. Hold their identity document beside their face<br/>
+    <!-- Stage 2: Instructions + video request -->
+    <div class="card ${stage>=2?'card-green':''}" style="opacity:${stage>=1?1:0.4};pointer-events:${stage>=1?'auto':'none'}">
+      <div class="card-title">📸 Stage 2 — Send video instructions</div>
+      ${stage>=2 ? `
+        <div class="info-pill" style="margin-bottom:8px">✅ Instructions sent — awaiting video</div>
+        <div style="background:var(--green-lt);border-radius:8px;padding:9px;font-size:11px;color:var(--text-2);line-height:1.6">
+          Vendor was asked to:<br/>
+          1. Face camera and <strong>blink twice</strong><br/>
+          2. Hold identity document beside their face<br/>
           3. Keep both visible for 5 seconds
         </div>
-        ${kyc.videoMediaId ? `
-          <div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;
-                      font-size:12px;color:var(--green);font-weight:600;margin-top:8px">
-            📥 Video received from vendor — proceed to Stage 3 to review and approve
-          </div>
-        ` : `
-          <button class="btn btn-gray btn-full" style="margin-top:8px" onclick="nudgeKycVideo()">
-            💬 Remind vendor to send the video
-          </button>
-        `}
+        ${!kyc.videoMediaId ? `
+          <button class="btn btn-gray btn-full" style="margin-top:8px;font-size:11px" onclick="doNudgeKyc()">
+            💬 Remind vendor to send video
+          </button>` : ''}
       ` : `
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Once vendor confirms readiness, send the verification instructions.<br/>
-          The vendor will record a 15-second video and upload it here.
-        </p>
-        <button class="btn btn-green btn-full" style="padding:14px" onclick="generateAndSendLink()">
-          📸 Send video instructions to vendor
-        </button>
+        <button class="btn btn-green btn-full" onclick="doSendKycInstructions()">📹 Send video instructions to vendor</button>
       `}
     </div>
 
-    <!-- STAGE 3: Agent approves — unlocked as soon as link is sent -->
-    <div class="card ${stage >= 3 ? 'card-green' : ''}"
-         style="opacity:${stage >= 2 ? 1 : 0.4};pointer-events:${stage >= 2 ? 'auto' : 'none'}">
-      <div class="card-title">✅ Stage 3 — Agent approval</div>
-      ${stage >= 3
-        ? `<div style="font-size:12px;color:var(--green);font-weight:600">
-             ✅ KYC approved — loan disbursement triggered
-           </div>`
-        : `<p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-             Conduct the video call. Once you have verified the vendor's identity, click Approve.
-           </p>
-           <button class="btn btn-green btn-full" style="padding:14px;margin-bottom:8px" onclick="approveKyc()">
+    <!-- Stage 3: Review video -->
+    <div class="card ${stage>=3?'card-green':''}" style="opacity:${kyc.videoMediaId?1:0.4};pointer-events:${kyc.videoMediaId?'auto':'none'}">
+      <div class="card-title">🎬 Stage 3 — Review video</div>
+      ${stage>=3 && !kyc.agentApproved ? `
+        <div style="background:var(--green-lt);border-radius:8px;padding:9px;font-size:11px;margin-bottom:10px">
+          📥 Video received from vendor<br/>
+          <span style="font-size:10px;color:var(--text-2)">${kyc.uploadedAt?'At '+new Date(kyc.uploadedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):''}</span>
+        </div>
+        <p style="font-size:11px;color:var(--text-2);margin-bottom:6px">Check the video in WhatsApp and verify:</p>
+        <div style="font-size:11px;color:var(--text);line-height:1.8">
+          ☐ Face clearly visible<br/>
+          ☐ Vendor blinks twice<br/>
+          ☐ ID held beside face<br/>
+          ☐ Document readable
+        </div>
+      ` : stage>=4 ? `<div class="info-pill">✅ Video reviewed</div>` :
+        `<p style="font-size:11px;color:var(--text-2)">Waiting for vendor to upload their verification video.</p>`}
+    </div>
+
+    <!-- Stage 4: Approve -->
+    <div class="card ${stage>=4?'card-green':''}" style="opacity:${stage>=3?1:0.4};pointer-events:${stage>=3?'auto':'none'}">
+      <div class="card-title">✅ Stage 4 — Agent approval</div>
+      ${stage>=4
+        ? `<div class="info-pill">✅ KYC approved — loan triggered</div>`
+        : `<button class="btn btn-green btn-full" style="padding:13px;font-size:13px" onclick="doApproveKyc()">
              ✅ Approve KYC — trigger loan approval
-           </button>
-           <button class="btn btn-gray btn-full" onclick="nudgeKyc()" style="font-size:12px">
-             💬 Resend link to vendor
            </button>`}
     </div>
   `;
 }
-
-async function sendReadinessCheck() {
-  const ok = await agentAction('start_kyc_readiness');
-  if (ok) {
-    toast('Readiness check sent to vendor');
-    addLog('KYC readiness check sent');
-    renderPhase(4);
-  }
-}
-
-async function generateAndSendLink() {
-  const ok = await agentAction('start_kyc');
-  if (ok) {
-    toast('Video instructions sent to vendor');
-    addLog('KYC video instructions sent');
-    renderPhase(4);
-  }
-}
-
-async function nudgeKycVideo() {
+async function doKycReadiness()       { const ok=await agentAction('start_kyc_readiness'); if(ok){addLog('KYC readiness sent');renderPage(9);} }
+async function doSendKycInstructions(){ const ok=await agentAction('start_kyc'); if(ok){addLog('KYC instructions sent');renderPage(9);} }
+async function doApproveKyc()         { const ok=await agentAction('approve_kyc'); if(ok){addLog('KYC approved');goToPage(10);} }
+async function doNudgeKyc() {
   const ok = await agentAction('send_custom_message',
-    'Please record and send your 15-second verification video.\n\n' +
-    'Steps:\n' +
-    '1. Face the camera\n' +
-    '2. Blink twice slowly\n' +
-    '3. Hold your identity document beside your face\n\n' +
-    'Tap the attachment icon and select Video to record and send.'
-  );
-  if (ok) { toast('Reminder sent to vendor'); addLog('KYC video nudge sent'); }
-}
-
-async function resendKycLink() {
-  await nudgeKycVideo();
-}
-
-async function approveKyc() {
-  const ok = await agentAction('approve_kyc');
-  if (ok) {
-    toast('KYC approved! Loan disbursement triggered');
-    addLog('KYC approved by agent');
-    switchPhase(5);
-  }
-}
-
-async function nudgeKyc() {
-  const kyc  = vendor.data?.kyc || {};
-  const link = kyc.link || '';
-  const ok = await agentAction('send_custom_message',
-    'Please join the Video KYC call now.' + (link ? '\n\n' + link : '') +
-    '\n\nTap "I have completed KYC" on WhatsApp once the call is done.'
-  );
-  if (ok) { toast('Reminder sent'); addLog('KYC nudge sent to vendor'); }
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// PHASE 5 — REPAYMENT SELECTION
-// Fixed EMI · Flexible (Seasonal) EMI · Micro-Repayment
-// Matches screenshots exactly: donut, bar charts, calendar picker
-// ══════════════════════════════════════════════════════════════
-
-// ── Constants (per spec: ₹1.5L annual revenue, ₹30,000 max loan) ──────────
-const ANNUAL_REV   = 150000; // ₹1.5L annual revenue per spec
-const MAX_LOAN     = 30000;   // 20% of ₹1.5L = ₹30,000
-const RATE         = 0.10;    // 10% p.a.
-const INTEREST_RATE = RATE;   // alias for backward compat
-const DAYS_PER_MONTH = 30;
-const MONTHS_IN_YEAR = 12;   // 10% p.a.
-const LOAN         = () => Math.min(vendor.data?.loanAmount || MAX_LOAN, MAX_LOAN);
-const TOTAL_REPAY  = () => LOAN() + Math.round(LOAN() * RATE);
-
-// ── Tab state ─────────────────────────────────────────────────────────────
-let repayTab  = 'fixed';
-let selMonths = [];          // indices 0-11 for Flexible EMI peak months
-
-// ── Eligibility pill (shown at top of all tabs) ───────────────────────────
-function eligPill() {
-  const tranche = vendor.data?.eligibility?.trancheLabel || 'Tranche 1';
-  const tn = tranche.match(/Tranche (\d)/)?.[1] || '1';
-  return `<div class="info-pill" style="margin-bottom:10px;width:100%;justify-content:center">
-    ✓ Eligible: ₹${LOAN().toLocaleString('en-IN')} · Tranche ${tn} · 20% of ₹1.5L revenue
-  </div>`;
+    'Please record and send your 15-second verification video.\n\nSteps:\n1. Face the camera\n2. Blink twice slowly\n3. Hold your ID document beside your face\n\nTap the attachment icon and select Video.');
+  if (ok) toast('Reminder sent');
 }
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 5 RENDER
+// PAGE 10 — REPAYMENT
 // ══════════════════════════════════════════════════════════════
-function renderPhase5(area, bar, action) {
+function p10(area) {
   area.innerHTML = `
-    ${eligPill()}
-    <div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:0">
-      ${['fixed','seasonal','micro'].map((t,i) => {
-        const labels = ['Fixed\nEMI', 'Flexible\nEMI', 'Micro-\nRepayment'];
-        const active = repayTab === t;
-        return `<div onclick="setRepayTab('${t}')"
-          style="flex:1;text-align:center;padding:10px 4px;font-size:11px;font-weight:${active?700:500};
-                 cursor:pointer;border-bottom:${active?'2px solid var(--green)':'2px solid transparent'};
-                 color:${active?'var(--green)':'var(--text-2)'};white-space:pre-line;line-height:1.3;
-                 margin-bottom:-2px">${labels[i]}</div>`;
+    <div class="info-pill" style="justify-content:center;margin-bottom:2px">
+      ✓ Eligible: ₹${LOAN().toLocaleString('en-IN')} · Tranche ${vendor.data?.eligibility?.tranche||1} · 20% of ₹1.5L revenue
+    </div>
+    <div class="repay-tabs">
+      ${['fixed','seasonal','micro'].map((t,i)=>{
+        const labels=['Fixed\nEMI','Flexible\nEMI','Micro-\nRepayment'];
+        return `<div class="repay-tab ${repayTab===t?'active':''}" onclick="setRepayTab5('${t}')">${labels[i]}</div>`;
       }).join('')}
     </div>
-    <div id="repayContent" style="margin-top:0">${renderRepayContent()}</div>
+    <div id="repayContent">${renderRepay5()}</div>
   `;
 }
 
-function setRepayTab(tab) {
-  repayTab  = tab;
-  selMonths = [];
-  renderPhase(5);
+function setRepayTab5(tab) { repayTab=tab; selMonths=[]; renderPage(10); }
+
+function renderRepay5() {
+  if (repayTab==='fixed')    return repayFixed5();
+  if (repayTab==='seasonal') return repaySeasonal5();
+  return repayMicro5();
 }
 
-function renderRepayContent() {
-  if (repayTab === 'fixed')    return renderFixed();
-  if (repayTab === 'seasonal') return renderSeasonal();
-  if (repayTab === 'micro')    return renderMicro();
-  return '';
-}
-
-// ══════════════════════════════════════════════════════════════
-// FIXED EMI — tenure slider → donut chart → breakdown
-// ══════════════════════════════════════════════════════════════
-function renderFixed() {
-  const loan     = LOAN();
-  const interest = Math.round(loan * RATE);
-  const total    = loan + interest;
-  const tenure   = parseInt(document.getElementById('fixedTenure')?.value || 12);
-  const emi      = Math.ceil(total / tenure);
-
-  // Donut chart: principal (green) vs interest (amber)
-  const pct     = Math.round((loan / total) * 100);
-  const circ    = 2 * Math.PI * 38;   // r=38
-  const prDash  = (pct / 100) * circ;
-  const inDash  = circ - prDash;
-
+function repayFixed5() {
+  const loan=LOAN(), interest=Math.round(loan*RATE), total=loan+interest;
+  const tenure=parseInt(document.getElementById('fixedTenure5')?.value||12);
+  const emi=Math.ceil(total/tenure);
+  const circ=2*Math.PI*34, pr=(loan/total)*circ, int=circ-pr;
   return `
-    <!-- Tenure slider -->
-    <div class="card" style="margin-top:8px">
-      <div class="slider-label">
-        <span>Repayment tenure</span>
-        <span class="val" id="fixedTenureVal">${tenure} months</span>
-      </div>
-      <input type="range" id="fixedTenure" min="6" max="12" value="${tenure}" step="1"
-             oninput="updateFixed(this.value)" style="margin:4px 0"/>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2)">
-        <span>6 months</span><span>12 months</span>
-      </div>
+    <div class="card" style="margin-top:6px">
+      <div class="slider-label"><span>Repayment tenure</span><span class="val" id="fixedTenureVal5">${tenure} months</span></div>
+      <input type="range" id="fixedTenure5" min="6" max="12" value="${tenure}" step="1" oninput="updateFixed5(this.value)"/>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-2)"><span>6 mo</span><span>12 mo</span></div>
     </div>
-
-    <!-- EMI result card -->
     <div class="emi-result">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="emi-result-label">Monthly EMI</div>
-          <div class="emi-result-val" id="fixedEmiVal">₹${emi.toLocaleString('en-IN')}</div>
-          <div class="emi-result-sub">fixed every month</div>
-        </div>
-        <div style="text-align:right">
-          <div class="emi-result-label">Interest</div>
-          <div style="font-size:18px;font-weight:700">10% p.a.</div>
-        </div>
+      <div style="display:flex;justify-content:space-between">
+        <div><div class="emi-result-label">Monthly EMI</div><div class="emi-result-val" id="fixedEmiVal5">₹${emi.toLocaleString('en-IN')}</div><div class="emi-result-sub">fixed every month</div></div>
+        <div style="text-align:right"><div class="emi-result-label">Interest</div><div style="font-size:16px;font-weight:700">10% p.a.</div></div>
       </div>
     </div>
-
-    <!-- Donut + breakdown -->
-    <div class="card" style="display:flex;gap:12px;align-items:center">
-      <svg width="88" height="88" viewBox="0 0 88 88" style="flex-shrink:0">
-        <circle cx="44" cy="44" r="38" fill="none" stroke="var(--border)" stroke-width="10"/>
-        <circle cx="44" cy="44" r="38" fill="none" stroke="var(--green)" stroke-width="10"
-                stroke-dasharray="${prDash.toFixed(1)} ${inDash.toFixed(1)}"
-                stroke-dashoffset="${circ * 0.25}" stroke-linecap="round"/>
-        <circle cx="44" cy="44" r="38" fill="none" stroke="${interest>0?'#f59e0b':'transparent'}" stroke-width="10"
-                stroke-dasharray="${inDash.toFixed(1)} ${prDash.toFixed(1)}"
-                stroke-dashoffset="${(circ * 0.25 - prDash).toFixed(1)}" stroke-linecap="round"/>
+    <div class="card" style="display:flex;gap:10px;align-items:center">
+      <svg width="76" height="76" viewBox="0 0 76 76" style="flex-shrink:0">
+        <circle cx="38" cy="38" r="34" fill="none" stroke="var(--border)" stroke-width="9"/>
+        <circle cx="38" cy="38" r="34" fill="none" stroke="var(--green)" stroke-width="9"
+          stroke-dasharray="${pr.toFixed(1)} ${int.toFixed(1)}" stroke-dashoffset="${(circ*.25).toFixed(1)}" stroke-linecap="round"/>
+        <circle cx="38" cy="38" r="34" fill="none" stroke="#f59e0b" stroke-width="9"
+          stroke-dasharray="${int.toFixed(1)} ${pr.toFixed(1)}" stroke-dashoffset="${(circ*.25-pr).toFixed(1)}" stroke-linecap="round"/>
       </svg>
       <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <div style="width:10px;height:10px;border-radius:50%;background:var(--green)"></div>
-          <span style="font-size:12px;color:var(--text-2)">Principal</span>
-          <span style="font-size:13px;font-weight:600;margin-left:auto">₹${loan.toLocaleString('en-IN')}</span>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+          <div style="width:9px;height:9px;border-radius:50%;background:var(--green)"></div>
+          <span style="font-size:11px;color:var(--text-2)">Principal</span>
+          <span style="font-size:11px;font-weight:600;margin-left:auto">₹${loan.toLocaleString('en-IN')}</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <div style="width:10px;height:10px;border-radius:50%;background:#f59e0b"></div>
-          <span style="font-size:12px;color:var(--text-2)">Total interest</span>
-          <span style="font-size:13px;font-weight:600;margin-left:auto">₹${interest.toLocaleString('en-IN')}</span>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+          <div style="width:9px;height:9px;border-radius:50%;background:#f59e0b"></div>
+          <span style="font-size:11px;color:var(--text-2)">Interest</span>
+          <span style="font-size:11px;font-weight:600;margin-left:auto">₹${interest.toLocaleString('en-IN')}</span>
         </div>
-        <div style="height:1px;background:var(--border);margin:6px 0"></div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-size:12px;color:var(--text-2)">Total payable</span>
-          <span style="font-size:13px;font-weight:700">₹${total.toLocaleString('en-IN')}</span>
-        </div>
+        <div style="height:1px;background:var(--border);margin:4px 0"></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text-2)">Total</span><span style="font-size:11px;font-weight:700">₹${total.toLocaleString('en-IN')}</span></div>
       </div>
     </div>
-
-    <button class="btn btn-green btn-full" style="margin-top:2px" onclick="confirmFixedPlan()">
-      Confirm Fixed EMI →
-    </button>
-  `;
+    <button class="btn btn-green btn-full" onclick="doConfirmFixed5()">Confirm Fixed EMI →</button>`;
+}
+function updateFixed5(val) {
+  const loan=LOAN(),total=loan+Math.round(loan*RATE),emi=Math.ceil(total/parseInt(val));
+  const el=document.getElementById('fixedTenureVal5'); if(el) el.textContent=val+' months';
+  const ev=document.getElementById('fixedEmiVal5'); if(ev) ev.textContent='₹'+emi.toLocaleString('en-IN');
+}
+async function doConfirmFixed5() {
+  const t=parseInt(document.getElementById('fixedTenure5')?.value||12);
+  const ok1=await agentAction('select_monthly');
+  const ok2=ok1&&await agentAction('submit_repayment_number',String(t));
+  if(ok2){toast('Fixed EMI confirmed');addLog('Fixed EMI: '+t+'mo');goToPage(11);}
 }
 
-function updateFixed(val) {
-  const loan     = LOAN();
-  const interest = Math.round(loan * RATE);
-  const total    = loan + interest;
-  const emi      = Math.ceil(total / parseInt(val));
-  const el = document.getElementById('fixedTenureVal');
-  const ev = document.getElementById('fixedEmiVal');
-  if (el) el.textContent = val + ' months';
-  if (ev) ev.textContent = '₹' + emi.toLocaleString('en-IN');
-}
-
-async function confirmFixedPlan() {
-  const tenure = parseInt(document.getElementById('fixedTenure')?.value || 12);
-  const ok1 = await agentAction('select_monthly');
-  const ok2 = ok1 && await agentAction('submit_repayment_number', String(tenure));
-  if (ok2) { toast('Fixed EMI plan confirmed — sending to vendor'); addLog('Fixed EMI: ' + tenure + 'mo'); switchPhase(6); }
-}
-
-// ══════════════════════════════════════════════════════════════
-// FLEXIBLE (SEASONAL) EMI — month picker → peak slider → bar chart
-// ══════════════════════════════════════════════════════════════
-function renderSeasonal() {
-  const loan      = LOAN();
-  const interest  = Math.round(loan * RATE);
-  const total     = loan + interest;
-  const months    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const peakCount = selMonths.length;
-  const leanCount = 12 - peakCount;
-  const maxPeak   = parseInt(document.getElementById('peakSlider')?.value || Math.ceil(total / Math.max(peakCount,1)));
-  const peakTotal = maxPeak * peakCount;
-  const leanTotal = Math.max(total - peakTotal, 0);
-  const leanEmi   = leanCount > 0 ? Math.ceil(leanTotal / leanCount) : 0;
-  const barMax    = Math.max(maxPeak, leanEmi, 1);
-
+function repaySeasonal5() {
+  const loan=LOAN(),interest=Math.round(loan*RATE),total=loan+interest;
+  const peakCount=selMonths.length,leanCount=12-peakCount;
+  const maxPeak=parseInt(document.getElementById('peakSlider5')?.value||Math.ceil(total/Math.max(peakCount,1)));
+  const peakTotal=maxPeak*peakCount;
+  const leanTotal=Math.max(total-peakTotal,0);
+  const leanEmi=leanCount>0?Math.ceil(leanTotal/leanCount):0;
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const barMax=Math.max(maxPeak,leanEmi,1);
   return `
-    <!-- Month picker -->
-    <div class="card" style="margin-top:8px">
-      <div class="card-title">Select your peak earning months (tap to mark)</div>
-      <div class="month-grid">
-        ${months.map((m,i) => `
-          <div class="month-btn ${selMonths.includes(i)?'selected':''}"
-               onclick="toggleMonth(${i})">${m}</div>
-        `).join('')}
-      </div>
+    <div class="card" style="margin-top:6px">
+      <div class="card-title" style="font-size:11px">Select peak earning months (tap to mark)</div>
+      <div class="month-grid">${months.map((m,i)=>`<div class="month-btn ${selMonths.includes(i)?'selected':''}" onclick="toggleMonth5(${i})">${m}</div>`).join('')}</div>
     </div>
-
-    <!-- Peak payment slider -->
     <div class="card">
-      <div class="slider-label">
-        <span>Max you can pay in peak months</span>
-        <span class="val" id="peakSliderVal">₹${maxPeak.toLocaleString('en-IN')}</span>
+      <div class="slider-label"><span>Max pay in peak months</span><span class="val" id="peakSliderVal5">₹${maxPeak.toLocaleString('en-IN')}</span></div>
+      <input type="range" id="peakSlider5" min="500" max="4000" value="${maxPeak}" step="100" oninput="updateSeasonal5(this.value)"/>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-2)"><span>₹500</span><span>₹4,000</span></div>
+    </div>
+    <div class="emi-result" style="padding:11px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <div><div class="emi-result-label">Peak months EMI</div><div class="emi-result-val">₹${maxPeak.toLocaleString('en-IN')}</div></div>
+        <div style="text-align:right"><div class="emi-result-label">Lean months EMI</div><div style="font-size:18px;font-weight:700">₹${leanEmi.toLocaleString('en-IN')}</div></div>
       </div>
-      <input type="range" id="peakSlider" min="500" max="4000" value="${maxPeak}" step="100"
-             oninput="updateSeasonal(this.value)"/>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2)">
-        <span>₹500</span><span>₹4,000</span>
+      <div style="margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:10px;background:var(--green-lt);color:var(--green);border-radius:10px;padding:1px 7px;font-weight:600">${peakCount} peak</span>
+          <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.2)"><div style="height:100%;border-radius:3px;background:#fff;width:${Math.min(100,Math.round(maxPeak/barMax*100))}%"></div></div>
+          <span style="font-size:10px;font-weight:600">₹${(maxPeak*peakCount).toLocaleString('en-IN')}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:1px 7px;font-weight:600">${leanCount} lean</span>
+          <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.2)"><div style="height:100%;border-radius:3px;background:#f59e0b;width:${Math.min(100,Math.round(leanEmi/barMax*100))}%"></div></div>
+          <span style="font-size:10px;font-weight:600">₹${(leanEmi*leanCount).toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;display:flex;justify-content:space-between">
+        <span style="font-size:10px;opacity:.8">Total payable</span><span style="font-size:11px;font-weight:700">₹${total.toLocaleString('en-IN')}</span>
       </div>
     </div>
-
-    <!-- Split EMI result card -->
-    <div class="emi-result" style="padding:14px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
-        <div>
-          <div class="emi-result-label">Peak months EMI</div>
-          <div class="emi-result-val">₹${maxPeak.toLocaleString('en-IN')}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="emi-result-label">Lean months EMI</div>
-          <div style="font-size:22px;font-weight:700">₹${leanEmi.toLocaleString('en-IN')}</div>
-        </div>
-      </div>
-      <!-- Bar chart rows -->
-      <div style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-          <span style="font-size:11px;background:var(--green-lt);color:var(--green);border-radius:10px;padding:1px 8px;font-weight:600;white-space:nowrap">
-            ${peakCount} peak
-          </span>
-          <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.2)">
-            <div style="height:100%;border-radius:4px;background:#fff;width:${Math.min(100,Math.round(maxPeak/barMax*100))}%"></div>
-          </div>
-          <span style="font-size:11px;font-weight:600;white-space:nowrap">₹${(maxPeak*peakCount).toLocaleString('en-IN')}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:1px 8px;font-weight:600;white-space:nowrap">
-            ${leanCount} lean
-          </span>
-          <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.2)">
-            <div style="height:100%;border-radius:4px;background:#f59e0b;width:${Math.min(100,Math.round(leanEmi/barMax*100))}%"></div>
-          </div>
-          <span style="font-size:11px;font-weight:600;white-space:nowrap">₹${(leanEmi*leanCount).toLocaleString('en-IN')}</span>
-        </div>
-      </div>
-      <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;display:flex;justify-content:space-between">
-        <span style="font-size:11px;opacity:.8">Total payable (12 months)</span>
-        <span style="font-size:13px;font-weight:700">₹${total.toLocaleString('en-IN')}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:4px">
-        <span style="font-size:11px;opacity:.8">Total interest (10% p.a.)</span>
-        <span style="font-size:12px;font-weight:600">₹${interest.toLocaleString('en-IN')}</span>
-      </div>
-    </div>
-    <div style="font-size:10px;color:var(--text-2);margin-bottom:8px;text-align:center">
-      *Fixed 12-month tenure. Peak/lean split adjusts your monthly burden.
-    </div>
-    <button class="btn btn-green btn-full" onclick="confirmSeasonalPlan()">
-      Confirm Flexible EMI →
-    </button>
-  `;
+    <div style="font-size:10px;color:var(--text-2);margin-bottom:6px;text-align:center">*Fixed 12-month tenure. Peak/lean split adjusts monthly burden.</div>
+    <button class="btn btn-green btn-full" onclick="doConfirmSeasonal5()">Confirm Flexible EMI →</button>`;
+}
+function toggleMonth5(i) { const idx=selMonths.indexOf(i); if(idx>-1)selMonths.splice(idx,1); else selMonths.push(i); document.getElementById('repayContent').innerHTML=renderRepay5(); }
+function updateSeasonal5(val) { document.getElementById('peakSliderVal5').textContent='₹'+parseInt(val).toLocaleString('en-IN'); document.getElementById('repayContent').innerHTML=renderRepay5(); }
+async function doConfirmSeasonal5() {
+  if(!selMonths.length){toast('Select at least 1 peak month',false);return;}
+  const peak=parseInt(document.getElementById('peakSlider5')?.value||2400);
+  const ok1=await agentAction('select_seasonal');
+  const ok2=ok1&&await agentAction('submit_repayment_number',String(selMonths.length));
+  const ok3=ok2&&await agentAction('submit_repayment_number',String(peak));
+  if(ok3){toast('Flexible EMI confirmed');addLog('Flexible EMI: '+selMonths.length+' peak @ ₹'+peak);goToPage(11);}
 }
 
-function toggleMonth(i) {
-  const idx = selMonths.indexOf(i);
-  if (idx > -1) selMonths.splice(idx, 1); else selMonths.push(i);
-  document.getElementById('repayContent').innerHTML = renderSeasonal();
-}
-
-function updateSeasonal(val) {
-  document.getElementById('peakSliderVal').textContent = '₹' + parseInt(val).toLocaleString('en-IN');
-  document.getElementById('repayContent').innerHTML = renderSeasonal();
-}
-
-async function confirmSeasonalPlan() {
-  if (selMonths.length === 0) { toast('Select at least 1 peak month', false); return; }
-  const peakAmt = parseInt(document.getElementById('peakSlider')?.value || 2400);
-  const ok1 = await agentAction('select_seasonal');
-  const ok2 = ok1 && await agentAction('submit_repayment_number', String(selMonths.length));
-  const ok3 = ok2 && await agentAction('submit_repayment_number', String(peakAmt));
-  if (ok3) {
-    toast('Flexible EMI plan confirmed — sending to vendor');
-    addLog('Flexible EMI: ' + selMonths.length + ' peak months @ ₹' + peakAmt);
-    switchPhase(6);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// MICRO-REPAYMENT — savings slider → tenure slider → calendar → result
-// ══════════════════════════════════════════════════════════════
-
-let microCutoffDay = 20;  // selected auto-debit day
-
-function renderMicro() {
-  const loan        = LOAN();
-  const interest    = Math.round(loan * RATE);
-  const total       = loan + interest;
-  const perTwo00    = parseInt(document.getElementById('microSlider')?.value || 40);
-  const tenure      = parseInt(document.getElementById('microTenure')?.value || 12);
-  const cutoff      = microCutoffDay;
-
-  // Daily auto-debit amount = (perTwo00 / 200) * avg_daily_revenue
-  // For a ₹1.5L/yr vendor: avg daily = 150000/365 ≈ ₹411
-  // Micro EMI = perTwo00/200 * 411 ≈ round to nearest 10
-  const avgDaily    = Math.round(ANNUAL_REV / 365);
-  const dailyAmt    = Math.max(1, Math.round((perTwo00 / 200) * avgDaily / 5) * 5);
-  const totalDays   = tenure * 30;
-  const autoDebitBy = `${cutoff}th`;
-  const dueDate     = '30th';
-  const bufferDays  = 30 - cutoff;
-  const monthlyEMI  = Math.ceil(total / tenure);
-  const autoCovers  = dailyAmt * cutoff;    // what auto-debit collects by cutoff
-  const remaining   = Math.max(monthlyEMI - autoCovers, 0);
-  const sufficient  = (dailyAmt * totalDays) >= total;
-  const suggested   = Math.ceil(total / totalDays);
-
-  // Build calendar for cutoff day selection
-  const calRows = buildCalendar(cutoff);
-
-  return `
-    <!-- Savings-per-₹200 slider -->
-    <div class="card" style="margin-top:8px">
-      <div class="slider-label">
-        <span>Savings per ₹200 earned</span>
-        <span class="val" id="microSliderVal">₹${perTwo00}</span>
-      </div>
-      <input type="range" id="microSlider" min="10" max="100" value="${perTwo00}" step="5"
-             oninput="updateMicroSlider(this.value)"/>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2)">
-        <span>₹10</span><span>₹100</span>
-      </div>
+function repayMicro5() {
+  const loan=LOAN(),interest=Math.round(loan*RATE),total=loan+interest;
+  const perTwo00=parseInt(document.getElementById('microSlider5')?.value||40);
+  const tenure=parseInt(document.getElementById('microTenure5')?.value||12);
+  const cutoff=microCutoffDay;
+  const avgDaily=Math.round(ANNUAL_REV/365);
+  const dailyAmt=Math.max(1,Math.round((perTwo00/200)*avgDaily/5)*5);
+  const monthlyEMI=Math.ceil(total/tenure);
+  const autoCovers=dailyAmt*cutoff;
+  const remaining=Math.max(monthlyEMI-autoCovers,0);
+  const bufferDays=30-cutoff;
+  // Calendar
+  const days=['M','T','W','T','F','S','S'];
+  const rows=[];let row=[];
+  for(let i=1;i<=30;i++){row.push(i);if(row.length===7){rows.push([...row]);row=[];}}
+  if(row.length){while(row.length<7)row.push(null);rows.push(row);}
+  const calHTML=`
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px">
+      ${days.map(d=>`<div style="text-align:center;font-size:9px;font-weight:600;color:var(--text-2)">${d}</div>`).join('')}
     </div>
-
-    <!-- Tenure slider -->
-    <div class="card">
-      <div class="slider-label">
-        <span>Repayment tenure</span>
-        <span class="val" id="microTenureVal">${tenure} months</span>
-      </div>
-      <input type="range" id="microTenure" min="6" max="12" value="${tenure}" step="1"
-             oninput="updateMicroTenure(this.value)"/>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2)">
-        <span>6 months</span><span>12 months</span>
-      </div>
-    </div>
-
-    <!-- Calendar cutoff picker -->
-    <div class="card">
-      <div class="slider-label" style="margin-bottom:8px">
-        <span>Auto-debit cutoff date <span style="font-weight:400;font-size:10px">(tap a date)</span></span>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <span style="background:var(--green);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">
-          Auto-debit by ${autoDebitBy}
-        </span>
-        <span style="background:var(--amber-lt);color:#92400e;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">
-          Due date: ${dueDate}
-        </span>
-      </div>
-      ${calRows}
-      <!-- Legend -->
-      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-2)">
-          <div style="width:10px;height:10px;border-radius:2px;background:var(--green)"></div> Auto-debit day
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-2)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#fef9c3;border:1px solid #fde68a"></div> Buffer window
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-2)">
-          <div style="width:10px;height:10px;border-radius:2px;background:var(--green-lt);border:1px solid #c3e6d4"></div> Due date (30th)
-        </div>
-      </div>
-    </div>
-
-    <!-- Result card -->
-    <div class="emi-result" style="${sufficient?'':'background:#b45309'}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div class="emi-result-label">Monthly EMI</div>
-          <div class="emi-result-val">₹${monthlyEMI.toLocaleString('en-IN')}</div>
-          <div class="emi-result-sub">total per month</div>
-        </div>
-        <div style="text-align:right">
-          <div class="emi-result-label">Auto-debit covers</div>
-          <div style="font-size:22px;font-weight:700">₹${autoCovers.toLocaleString('en-IN')}</div>
-          <div class="emi-result-sub">by ${autoDebitBy}</div>
-        </div>
-      </div>
-      <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="font-size:11px;opacity:.8">Remaining (pay by 30th)</span>
-          <span style="font-size:12px;font-weight:600">₹${remaining.toLocaleString('en-IN')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="font-size:11px;opacity:.8">Buffer window</span>
-          <span style="font-size:12px;font-weight:600">${bufferDays} days</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="font-size:11px;opacity:.8">Total interest (10% p.a.)</span>
-          <span style="font-size:12px;font-weight:600">₹${interest.toLocaleString('en-IN')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-size:11px;opacity:.8">Total payable</span>
-          <span style="font-size:13px;font-weight:700">₹${total.toLocaleString('en-IN')}</span>
-        </div>
-      </div>
-    </div>
-    <button class="btn btn-green btn-full" style="margin-top:2px" onclick="confirmMicroPlan()">
-      Set up Micro-Repayment →
-    </button>
-  `;
-}
-
-function buildCalendar(cutoff) {
-  const days = ['M','T','W','T','F','S','S'];
-  // Generate a generic 30-day month layout starting from Monday
-  // (using a fixed layout so no real date dependency needed)
-  const cells = [];
-  // First row starts with 1 on Monday for simplicity
-  let d = 1;
-  const rows = [];
-  // pad: first day is Monday (no offset needed)
-  let rowCells = [];
-  for (let i = 1; i <= 30; i++) {
-    rowCells.push(i);
-    if (rowCells.length === 7) { rows.push([...rowCells]); rowCells = []; }
-  }
-  if (rowCells.length) { while (rowCells.length < 7) rowCells.push(null); rows.push(rowCells); }
-
-  const headerHTML = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">
-    ${days.map(d => `<div style="text-align:center;font-size:10px;font-weight:600;color:var(--text-2)">${d}</div>`).join('')}
-  </div>`;
-
-  const rowsHTML = rows.map(row =>
-    `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">
-      ${row.map(day => {
-        if (!day) return `<div></div>`;
-        const isAuto   = day === cutoff;
-        const isBuffer = day > cutoff && day < 30;
-        const isDue    = day === 30;
-        let bg = '#fff', border = 'var(--border)', color = 'var(--text)';
-        if (isAuto)   { bg = 'var(--green)';    border = 'var(--green)';   color = '#fff'; }
-        else if (isDue)    { bg = 'var(--green-lt)'; border = '#c3e6d4';        color = 'var(--green)'; }
-        else if (isBuffer) { bg = '#fef9c3';         border = '#fde68a';        color = '#92400e'; }
-        return `<div onclick="setMicroCutoff(${day})"
-                     style="text-align:center;padding:5px 0;border-radius:6px;font-size:11px;font-weight:${isAuto||isDue?700:400};
-                            cursor:pointer;border:1.5px solid ${border};background:${bg};color:${color}">
-                  ${day}
-                </div>`;
+    ${rows.map(row=>`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px">
+      ${row.map(day=>{
+        if(!day) return '<div></div>';
+        const isAuto=day===cutoff,isBuffer=day>cutoff&&day<30,isDue=day===30;
+        let bg='#fff',border='var(--border)',col='var(--text)';
+        if(isAuto){bg='var(--green)';border='var(--green)';col='#fff';}
+        else if(isDue){bg='var(--green-lt)';border='#c3e6d4';col='var(--green)';}
+        else if(isBuffer){bg='#fef9c3';border='#fde68a';col='#92400e';}
+        return `<div onclick="setMicroCutoff5(${day})" style="text-align:center;padding:4px 0;border-radius:5px;font-size:10px;font-weight:${isAuto||isDue?700:400};cursor:pointer;border:1px solid ${border};background:${bg};color:${col}">${day}</div>`;
       }).join('')}
-    </div>`
-  ).join('');
-
-  return headerHTML + rowsHTML;
-}
-
-function setMicroCutoff(day) {
-  if (day >= 30) return;  // 30 is always due date, not selectable
-  microCutoffDay = day;
-  document.getElementById('repayContent').innerHTML = renderMicro();
-}
-
-function updateMicroSlider(val) {
-  const el = document.getElementById('microSliderVal');
-  if (el) el.textContent = '₹' + val;
-  document.getElementById('repayContent').innerHTML = renderMicro();
-}
-
-function updateMicroTenure(val) {
-  const el = document.getElementById('microTenureVal');
-  if (el) el.textContent = val + ' months';
-  document.getElementById('repayContent').innerHTML = renderMicro();
-}
-
-async function confirmMicroPlan() {
-  const perTwo00 = parseInt(document.getElementById('microSlider')?.value || 40);
-  const tenure   = parseInt(document.getElementById('microTenure')?.value || 12);
-  const avgDaily = Math.round(ANNUAL_REV / 365);
-  const dailyAmt = Math.max(1, Math.round((perTwo00 / 200) * avgDaily / 5) * 5);
-  const ok1 = await agentAction('select_micro');
-  const ok2 = ok1 && await agentAction('submit_repayment_number', String(dailyAmt));
-  const ok3 = ok2 && await agentAction('submit_repayment_number', String(tenure));
-  if (ok3) {
-    toast('Micro-repayment plan confirmed — sending to vendor');
-    addLog('Micro: ₹' + dailyAmt + '/day · ' + tenure + 'mo · cutoff ' + microCutoffDay + 'th');
-    switchPhase(6);
-  }
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// PHASE 6 — DISBURSAL
-// ══════════════════════════════════════════════════════════════
-function renderPhase6(area, bar, action) {
-  const steps = [
-    { label: 'Entry & Authentication', done: true },
-    { label: 'OTP Verification',       done: true },
-    { label: 'Data consent & fetch',   done: true },
-    { label: 'Document upload & OCR',  done: !!(docs.ovd?.agentApproved && docs.qr?.agentApproved) },
-    { label: 'Profile & eligibility',  done: !!vendor.data.loanAmount },
-    { label: 'Video KYC',              done: vendor.state === 'REPAYMENT_MENU' || vendor.state === 'FINALIZED' },
-    { label: 'Repayment plan',         done: vendor.state === 'FINALIZED' },
-  ];
-  const allDone = steps.every(s => s.done);
-
-  area.innerHTML = `
-    <div class="card">
-      <div class="card-title">🏁 Disbursal checklist</div>
-      ${steps.map(s => `
-        <div class="checklist-item">
-          <div class="check-icon ${s.done ? 'check-done' : 'check-pending'}">${s.done ? '✓' : '○'}</div>
-          <span style="font-size:13px;color:${s.done ? 'var(--text)' : 'var(--gray)'}">${s.label}</span>
-        </div>`).join('')}
+    </div>`).join('')}
+    <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-2)"><div style="width:8px;height:8px;border-radius:2px;background:var(--green)"></div>Auto-debit</div>
+      <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-2)"><div style="width:8px;height:8px;border-radius:2px;background:#fef9c3;border:1px solid #fde68a"></div>Buffer</div>
+      <div style="display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-2)"><div style="width:8px;height:8px;border-radius:2px;background:var(--green-lt);border:1px solid #c3e6d4"></div>Due date</div>
+    </div>`;
+  return `
+    <div class="card" style="margin-top:6px">
+      <div class="slider-label"><span>Savings per ₹200 earned</span><span class="val" id="microSliderVal5">₹${perTwo00}</span></div>
+      <input type="range" id="microSlider5" min="10" max="100" value="${perTwo00}" step="5" oninput="updateMicroSlider5(this.value)"/>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-2)"><span>₹10</span><span>₹100</span></div>
     </div>
-
     <div class="card">
-      <div class="card-title">💸 Loan disbursement</div>
-      <div class="data-row"><span class="data-key">Vendor</span><span class="data-val">+${vendor.phone || '—'}</span></div>
-      <div class="data-row"><span class="data-key">Loan amount</span><span class="data-val" style="color:var(--green);font-weight:700">₹${(vendor.data.loanAmount || MAX_LOAN).toLocaleString('en-IN')}</span></div>
-      <div class="data-row"><span class="data-key">Disbursement</span><span class="data-val">Next working day</span></div>
-      <div class="data-row"><span class="data-key">Account</span><span class="data-val redacted">XXXX-${Math.floor(1000+Math.random()*9000)}</span></div>
+      <div class="slider-label"><span>Repayment tenure</span><span class="val" id="microTenureVal5">${tenure} months</span></div>
+      <input type="range" id="microTenure5" min="6" max="12" value="${tenure}" step="1" oninput="updateMicroTenure5(this.value)"/>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-2)"><span>6 mo</span><span>12 mo</span></div>
     </div>
-
-    ${allDone ? `
-    <button class="btn btn-green btn-full" style="font-size:15px;padding:16px" onclick="approveDisbursement()">
-      💸 Approve &amp; Disburse
-    </button>` : `
-    <div class="card card-amber">
-      <div style="font-size:12px;color:#92400e">
-        ⚠️ Complete all checklist steps before disbursing.
+    <div class="card">
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <span style="background:var(--green);color:#fff;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600">Auto-debit by ${cutoff}th</span>
+        <span style="background:var(--amber-lt);color:#92400e;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600">Due date: 30th</span>
       </div>
-    </div>`}
-  `;
+      ${calHTML}
+    </div>
+    <div class="emi-result">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <div><div class="emi-result-label">Monthly EMI</div><div class="emi-result-val">₹${monthlyEMI.toLocaleString('en-IN')}</div><div class="emi-result-sub">total per month</div></div>
+        <div style="text-align:right"><div class="emi-result-label">Auto-debit covers</div><div style="font-size:18px;font-weight:700">₹${autoCovers.toLocaleString('en-IN')}</div><div class="emi-result-sub">by ${cutoff}th</div></div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:7px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;opacity:.8">Remaining (pay by 30th)</span><span style="font-size:11px;font-weight:600">₹${remaining.toLocaleString('en-IN')}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;opacity:.8">Buffer window</span><span style="font-size:11px;font-weight:600">${bufferDays} days</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;opacity:.8">Total interest (10% p.a.)</span><span style="font-size:11px;font-weight:600">₹${interest.toLocaleString('en-IN')}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-size:10px;opacity:.8">Total payable</span><span style="font-size:12px;font-weight:700">₹${total.toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+    <button class="btn btn-green btn-full" onclick="doConfirmMicro5()">Set up Micro-Repayment →</button>`;
 }
-
-async function approveDisbursement() {
-  const ok = await agentAction('proceed_plan');
-  if (ok) {
-    toast('Loan disbursed! Vendor notified on WhatsApp');
-    addLog('Loan disbursed for +' + vendor.phone);
-    // Show success state
-    const area = document.getElementById('scrollArea');
-    area.innerHTML += `
-      <div class="card card-green" style="text-align:center;padding:24px">
-        <div style="font-size:36px;margin-bottom:8px">🎉</div>
-        <div style="font-size:16px;font-weight:700;color:var(--green)">Loan Approved & Disbursed!</div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:6px">
-          Ref: SVAN-${Date.now().toString().slice(-8)}<br/>
-          Vendor has received confirmation on WhatsApp.
-        </div>
-      </div>`;
-  }
+function setMicroCutoff5(day){if(day>=30)return;microCutoffDay=day;document.getElementById('repayContent').innerHTML=renderRepay5();}
+function updateMicroSlider5(val){const el=document.getElementById('microSliderVal5');if(el)el.textContent='₹'+val;document.getElementById('repayContent').innerHTML=renderRepay5();}
+function updateMicroTenure5(val){const el=document.getElementById('microTenureVal5');if(el)el.textContent=val+' months';document.getElementById('repayContent').innerHTML=renderRepay5();}
+async function doConfirmMicro5(){
+  const p=parseInt(document.getElementById('microSlider5')?.value||40);
+  const t=parseInt(document.getElementById('microTenure5')?.value||12);
+  const avg=Math.round(ANNUAL_REV/365);
+  const daily=Math.max(1,Math.round((p/200)*avg/5)*5);
+  const ok1=await agentAction('select_micro');
+  const ok2=ok1&&await agentAction('submit_repayment_number',String(daily));
+  const ok3=ok2&&await agentAction('submit_repayment_number',String(t));
+  if(ok3){toast('Micro-repayment confirmed');addLog('Micro: ₹'+daily+'/day · '+t+'mo · cutoff '+microCutoffDay+'th');goToPage(11);}
 }
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 6 — DISBURSAL
-// Full checklist driven by real session data + Approve & Disburse
+// PAGE 11 — FINAL CHECKLIST & DISBURSAL
 // ══════════════════════════════════════════════════════════════
-
-function renderPhase6(area, bar, action) {
-  const d    = vendor.data  || {};
-  const docs = d.docs       || {};
-  const kyc  = d.kyc        || {};
-  const plan = d.repaymentPlan || {};
-
-  // Each checklist item: label, done condition, detail string
-  const steps = [
-    {
-      label:  'Identity verified (Aadhaar/Bank DB)',
-      done:   !!(d.fetchedName),
-      detail: d.fetchedName ? d.fetchedName : null,
-    },
-    {
-      label:  'OTP verified',
-      done:   !!(d.otpVerified),
-      detail: d.phone ? d.phone.slice(0,2) + 'XXXXXX' + d.phone.slice(-2) : null,
-    },
-    {
-      label:  'Data consent given',
-      done:   !!(d.consentGiven),
-      detail: d.dbPath ? (d.dbPath === 'aadhaar' ? 'Aadhaar DB' : 'Bank DB') : null,
-    },
-    {
-      label:  'Identity document (OVD) uploaded & verified',
-      done:   !!(docs.ovd?.agentApproved),
-      detail: docs.ovd?.docTypeLabel ? docs.ovd.docTypeLabel + ' — ' + (docs.ovd.ocrName || '') : null,
-    },
-    {
-      label:  'UPI / QR code',
-      done:   !!(docs.qr?.agentApproved),
-      detail: docs.qr?.ocrUpiId !== 'SKIPPED' ? (docs.qr?.ocrUpiId || null) : 'Skipped',
-    },
-    {
-      label:  'References collected',
-      done:   !!(d.ref1Name && d.ref2Name),
-      detail: d.ref1Name ? (d.ref1Name + ' / ' + (d.ref2Name || '—')) : null,
-    },
-    {
-      label:  'Eligibility & loan amount confirmed',
-      done:   !!(d.loanAmount),
-      detail: d.loanAmount ? '₹' + d.loanAmount.toLocaleString('en-IN') : null,
-    },
-    {
-      label:  'Video KYC completed',
-      done:   !!(kyc.completed || kyc.agentApproved),
-      detail: kyc.completedAt ? 'At ' + new Date(kyc.completedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : null,
-    },
-    {
-      label:  'Repayment plan selected',
-      done:   !!(plan.type),
-      detail: plan.type === 'MONTHLY'  ? 'Fixed EMI · ' + plan.tenure + ' months'
-            : plan.type === 'SEASONAL' ? 'Flexible EMI · ' + (plan.highMonths||0) + ' peak months'
-            : plan.type === 'MICRO'    ? 'Micro · ₹' + (plan.dailyAmount||0) + '/day'
-            : null,
-    },
+function p11(area) {
+  const d=vendor.data||{},docs=d.docs||{},kyc=d.kyc||{},plan=d.repaymentPlan||{};
+  const steps=[
+    {label:'Identity verified (Bank DB)',         done:!!d.fetchedName,         detail:d.fetchedName||null},
+    {label:'OTP verified',                        done:!!d.otpVerified,          detail:d.phone?d.phone.slice(0,2)+'XXXXXX'+d.phone.slice(-2):null},
+    {label:'Data consent given',                  done:!!d.consentGiven,         detail:'Bank DB'},
+    {label:'Identity document (OVD) verified',   done:!!docs.ovd?.agentApproved,detail:docs.ovd?.docTypeLabel||(docs.ovd?.ocrName||null)},
+    {label:'UPI QR code verified',                done:!!docs.qr?.agentApproved, detail:docs.qr?.ocrUpiId||null},
+    {label:'References collected',                done:!!(d.ref1Name&&d.ref2Name),detail:d.ref1Name?(d.ref1Name+' / '+(d.ref2Name||'—')):null},
+    {label:'Eligibility & loan amount confirmed', done:!!d.loanAmount,           detail:d.loanAmount?'₹'+d.loanAmount.toLocaleString('en-IN'):null},
+    {label:'KYC video reviewed & approved',       done:!!kyc.agentApproved,      detail:kyc.approvedAt?'At '+new Date(kyc.approvedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):null},
+    {label:'Repayment plan selected',             done:!!plan.type,              detail:plan.type==='MONTHLY'?'Fixed EMI · '+plan.tenure+'mo':plan.type==='SEASONAL'?'Flexible EMI':plan.type==='MICRO'?'Micro · ₹'+plan.dailyAmount+'/day':null},
   ];
-
-  const doneCount = steps.filter(s => s.done).length;
-  const allDone   = doneCount === steps.length;
-  const loanRef   = d.approval?.loanRef || 'Pending';
-  const disburseD = d.approval?.disburseDate
-    ? new Date(d.approval.disburseDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
-    : 'Next working day';
-  const accMask   = docs.passbook?.ocrAccount
-    ? 'XXXX' + docs.passbook.ocrAccount.slice(-4)
-    : 'XXXX-' + Math.floor(1000 + Math.random() * 9000);
+  const doneCount=steps.filter(s=>s.done).length;
+  const allDone=doneCount===steps.length;
+  const loanRef=d.approval?.loanRef||'Pending';
+  const disburseD=d.approval?.disburseDate?new Date(d.approval.disburseDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'Next working day';
 
   area.innerHTML = `
-    <!-- Progress counter -->
-    <div class="card" style="padding:10px 14px">
+    <!-- Progress -->
+    <div class="card" style="padding:10px 12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:600;color:var(--text-2)">🏁 Disbursal checklist</span>
-        <span style="font-size:12px;font-weight:700;color:${allDone?'var(--green)':'var(--amber)'}">
-          ${doneCount}/${steps.length} complete
-        </span>
+        <span style="font-size:11px;font-weight:600;color:var(--text-2)">🏁 Disbursal checklist</span>
+        <span style="font-size:11px;font-weight:700;color:${allDone?'var(--green)':'var(--amber)'}">${doneCount}/${steps.length}</span>
       </div>
-      <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden">
-        <div style="height:100%;border-radius:3px;background:${allDone?'var(--green)':'var(--amber)'};
-                    width:${Math.round(doneCount/steps.length*100)}%;transition:width .4s"></div>
+      <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden">
+        <div style="height:100%;border-radius:3px;background:${allDone?'var(--green)':'var(--amber)'};width:${Math.round(doneCount/steps.length*100)}%;transition:width .4s"></div>
       </div>
     </div>
 
     <!-- Checklist -->
-    <div class="card" style="padding:8px 14px">
-      ${steps.map(s => `
-        <div class="checklist-item">
-          <div class="check-icon ${s.done ? 'check-done' : 'check-pending'}">${s.done ? '✓' : '○'}</div>
+    <div class="card" style="padding:8px 12px">
+      ${steps.map(s=>`
+        <div class="check-item">
+          <div class="check-icon ${s.done?'check-done':'check-pending'}">${s.done?'✓':'○'}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:12px;color:${s.done ? 'var(--text)' : 'var(--gray)'};font-weight:${s.done?500:400}">
-              ${s.label}
-            </div>
-            ${s.done && s.detail ? `<div style="font-size:10px;color:var(--text-2);margin-top:1px">${s.detail}</div>` : ''}
+            <div style="font-size:11px;color:${s.done?'var(--text)':'var(--gray)'};font-weight:${s.done?500:400}">${s.label}</div>
+            ${s.done&&s.detail?`<div style="font-size:10px;color:var(--text-2);margin-top:1px">${s.detail}</div>`:''}
           </div>
-        </div>
-      `).join('')}
+        </div>`).join('')}
     </div>
 
-    <!-- Loan details summary -->
+    <!-- Loan summary -->
     <div class="card">
-      <div class="card-title">💸 Loan disbursement details</div>
-      <div class="data-row">
-        <span class="data-key">Vendor</span>
-        <span class="data-val">+${vendor.phone || '—'}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-key">Loan amount</span>
-        <span class="data-val" style="color:var(--green);font-weight:700;font-size:16px">
-          ₹${(d.loanAmount || MAX_LOAN).toLocaleString('en-IN')}
-        </span>
-      </div>
-      <div class="data-row">
-        <span class="data-key">Reference no.</span>
-        <span class="data-val" style="font-family:monospace;font-size:12px">${loanRef}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-key">Disbursement</span>
-        <span class="data-val">${disburseD}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-key">To account</span>
-        <span class="data-val redacted">${accMask}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-key">Repayment plan</span>
-        <span class="data-val" style="font-size:11px">
-          ${!plan.type ? '—'
-          : plan.type === 'MONTHLY'  ? 'Fixed EMI — ' + (plan.emi||'—') + '/mo × ' + plan.tenure + 'mo'
-          : plan.type === 'SEASONAL' ? 'Flexible — ' + plan.highMonths + ' peak / ' + (12-plan.highMonths) + ' lean months'
-          : 'Micro — ₹' + plan.dailyAmount + '/day × ' + plan.tenure + ' months'}
-        </span>
-      </div>
+      <div class="card-title">💸 Disbursement details</div>
+      <div class="data-row"><span class="data-key">Vendor</span><span class="data-val">+${vendor.phone||'—'}</span></div>
+      <div class="data-row"><span class="data-key">Loan amount</span><span class="data-val" style="color:var(--green);font-weight:700;font-size:15px">₹${(d.loanAmount||MAX_LOAN).toLocaleString('en-IN')}</span></div>
+      <div class="data-row"><span class="data-key">Reference no.</span><span class="data-val" style="font-family:monospace;font-size:10px">${loanRef}</span></div>
+      <div class="data-row"><span class="data-key">Disbursement</span><span class="data-val">${disburseD}</span></div>
     </div>
 
-    <!-- Disburse button or blocked warning -->
+    <!-- Disburse button -->
     ${allDone ? `
-      <button class="btn btn-green btn-full" id="disburseBtn"
-              style="font-size:15px;padding:16px;margin-bottom:4px" onclick="approveDisbursement()">
+      <button class="btn btn-green btn-full" id="disburseBtn" style="font-size:14px;padding:15px" onclick="doDisburse()">
         💸 Approve &amp; Disburse
       </button>
-      <p style="font-size:10px;color:var(--text-2);text-align:center;margin-bottom:16px">
-        This will send final confirmation to vendor and trigger bank transfer.
-      </p>
     ` : `
       <div class="card card-amber">
-        <div style="font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px">
-          ⚠️
-          <span>${steps.length - doneCount} step${steps.length-doneCount>1?'s':''} remaining before disbursement.</span>
-        </div>
+        <div style="font-size:11px;color:#92400e">⚠️ ${steps.length-doneCount} step${steps.length-doneCount>1?'s':''} remaining before disbursement.</div>
       </div>
     `}
   `;
 }
-
-async function approveDisbursement() {
-  const btn = document.getElementById('disburseBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Processing...'; }
-  const ok = await agentAction('proceed_plan');
-  if (ok) {
-    toast('Loan disbursed! Vendor notified on WhatsApp');
-    addLog('Loan disbursed for +' + vendor.phone);
-    const ref = vendor.data?.approval?.loanRef || 'SVAN-' + Date.now().toString().slice(-8);
-    const area = document.getElementById('scrollArea');
-    area.innerHTML = `
-      <div class="card card-green" style="text-align:center;padding:32px 24px;margin-top:16px">
-        <div style="font-size:48px;margin-bottom:12px">🎉</div>
-        <div style="font-size:18px;font-weight:700;color:var(--green);margin-bottom:4px">
-          Loan Approved &amp; Disbursed!
-        </div>
-        <div style="font-size:13px;color:var(--text-2);margin-top:8px;line-height:1.6">
+async function doDisburse() {
+  const btn=document.getElementById('disburseBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Processing...';}
+  const ok=await agentAction('proceed_plan');
+  if(ok){
+    addLog('Loan disbursed for +'+vendor.phone);
+    const ref=vendor.data?.approval?.loanRef||'SVAN-'+Date.now().toString().slice(-8);
+    document.getElementById('scrollArea').innerHTML=`
+      <div class="card card-green" style="text-align:center;padding:28px 16px;margin-top:16px">
+        <div style="font-size:40px;margin-bottom:10px">🎉</div>
+        <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:6px">Loan Approved &amp; Disbursed!</div>
+        <div style="font-size:12px;color:var(--text-2);line-height:1.7">
           Ref: <strong>${ref}</strong><br/>
-          Amount: <strong>₹${(vendor.data?.loanAmount || MAX_LOAN).toLocaleString('en-IN')}</strong><br/>
-          Vendor has received confirmation on WhatsApp.
+          Amount: <strong>₹${(vendor.data?.loanAmount||MAX_LOAN).toLocaleString('en-IN')}</strong><br/>
+          Vendor has been notified on WhatsApp.
         </div>
       </div>`;
   }
 }
 
-
 // ══════════════════════════════════════════════════════════════
-// LIVE SYNC — polls vendor session every 4s and auto-updates UI
+// INIT — auto-login from URL param
 // ══════════════════════════════════════════════════════════════
-
-// Maps each WhatsApp bot STATE to the correct dashboard tab index
-const STATE_TO_PHASE = {
-  IDLE: 0, ONBOARDING: 0,
-  COLLECT_PHONE: 1, COLLECT_UPI: 1, CONSENT_GATE: 1, ELIGIBILITY_RESULT: 1,
-  AWAIT_AADHAAR: 2, AWAIT_PAN: 2, AWAIT_QR: 2,
-  PROFILING_REFS: 3, PROFILING_FINANCE: 3, LOAN_SELECTION: 3,
-  KYC_READINESS: 4, AWAIT_KYC_VIDEO: 4,
-  VIDEO_KYC: 4, AWAITING_APPROVAL: 4,
-  REPAYMENT_MENU: 5, MONTHLY_EMI: 5, MONTHLY_CONFIRM: 5,
-  SEASONAL_HIGH: 5, SEASONAL_LOW: 5, SEASONAL_CONFIRM: 5,
-  MICRO_DAILY: 5, MICRO_TENURE: 5, MICRO_CONFIRM: 5,
-  FINALIZED: 6,
-};
-
-let pollTimer      = null;
-let lastSyncTime   = null;
-let syncFailing    = false;
-
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(syncVendorState, 4000);
-  document.getElementById('syncBadge').style.display = 'inline-flex';
-  document.getElementById('refreshBtn').style.display = 'inline-block';
-}
-
-// ── Manual refresh ────────────────────────────────────────────────────────
-async function manualRefresh() {
-  const btn = document.getElementById('refreshBtn');
-  if (btn) { btn.textContent = '↺ ...'; btn.disabled = true; }
-  await syncVendorState();
-  renderPhase(currentPhase);
-  if (btn) { btn.textContent = '↺ Refresh'; btn.disabled = false; }
-  toast('Refreshed');
-}
-
-// ── Agent chat — send message to vendor on WhatsApp ───────────────────────
-async function sendAgentMessage() {
-  const input = document.getElementById('agentMsgInput');
-  const msg = input?.value.trim();
-  if (!msg) return;
-  if (!vendor.phone) { toast('Load a vendor first', false); return; }
-  input.value = '';
-  input.disabled = true;
-  const ok = await agentAction('send_custom_message', msg);
-  input.disabled = false;
-  input.focus();
-  if (ok) addLog('Sent to vendor: ' + msg.slice(0, 40) + (msg.length > 40 ? '...' : ''));
-}
-
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  document.getElementById('syncBadge').style.display = 'none';
-}
-
-async function syncVendorState() {
-  if (!vendor.phone) return;
-  try {
-    const sep = '/agent/session/' + vendor.phone;
-    const res = await fetch(sep + '?pass=' + PASS);
-    const data = await res.json();
-    
-    const newState = data.state || 'IDLE';
-    const newData  = data.data  || {};
-    
-    // Update sync indicator
-    lastSyncTime = Date.now();
-    syncFailing  = false;
-    const dot = document.getElementById('syncDot');
-    const lbl = document.getElementById('syncLabel');
-    if (dot) { dot.classList.remove('stale'); }
-    if (lbl) { lbl.textContent = 'Live'; }
-    
-    // If state changed, update UI
-    if (newState !== vendor.state) {
-      const prevState = vendor.state;
-      vendor.state = newState;
-      vendor.data  = newData;
-      updateVendorStrip();
-      addLog('State changed: ' + prevState + ' → ' + newState);
-      
-      // Auto-switch to the correct tab for new state
-      const targetPhase = STATE_TO_PHASE[newState];
-      if (targetPhase !== undefined && targetPhase !== currentPhase) {
-        // Only auto-switch if agent is not on a later phase (don't pull them backwards unless finalized)
-        const shouldSwitch = targetPhase > currentPhase || newState === 'FINALIZED';
-        if (shouldSwitch) {
-          currentPhase = targetPhase;
-          document.querySelectorAll('.phase-tab').forEach((t, i) => {
-            t.classList.toggle('active', i === targetPhase);
-          });
-          renderPhase(targetPhase);
-          toast('Vendor moved to: ' + (STATE_LABELS[newState] || newState), true);
-        }
-      } else if (targetPhase === currentPhase) {
-        // Same tab but state changed — re-render to reflect new sub-state
-        vendor.data = newData;
-        renderPhase(currentPhase);
-      }
-    } else {
-      // State same — still update data in case documents were uploaded etc.
-      vendor.data = newData;
-    }
-  } catch (e) {
-    syncFailing = true;
-    const dot = document.getElementById('syncDot');
-    const lbl = document.getElementById('syncLabel');
-    if (dot) { dot.classList.add('stale'); }
-    if (lbl) { lbl.textContent = 'Offline'; }
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════════════════
-// Auto-login if pass param is in URL — skip login screen entirely
 const autoPass = new URLSearchParams(location.search).get('pass');
 if (autoPass) {
-  document.getElementById('agentPass').value = autoPass;
+  document.getElementById('agentPass').value  = autoPass;
   document.getElementById('agentPhone').value = '0000000000';
   agentLogin();
 }
