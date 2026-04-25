@@ -43,7 +43,8 @@ import { handleKycVendorReady,
          handleKYCDone,
          handleKYCRetry,
          handleKYCHelp,
-         handleKYCTextReminder }          from './phase4_videoKYC.js';
+         handleKYCTextReminder,
+         handleKYCVideoUpload }           from './phase4_videoKYC.js';
 import { handleRepaymentSelection,
          handleRepaymentInput,
          showRepaymentMenu }              from './phase4_repayment.js';
@@ -153,6 +154,7 @@ async function handleTextMessage(from, state, text) {
     // Phase 4 — KYC pending; remind user
     case STATE.KYC_READINESS:
     case STATE.VIDEO_KYC:
+    case STATE.AWAIT_KYC_VIDEO:
     case STATE.AWAITING_APPROVAL:
       await handleKYCTextReminder(from);
       break;
@@ -210,10 +212,7 @@ async function handleButtonMessage(from, state, buttonId) {
   }
 
   // ── Phase 1: DB path choice (Aadhaar-linked vs Bank-linked) ────────────
-  if (buttonId === 'path_aadhaar' || buttonId === 'path_bank') {
-    await handleDbPathChoice(from, buttonId);
-    return;
-  }
+  // path_aadhaar/path_bank removed — bank-only flow, handleCollectPhone handles it directly
 
   // ── Phase 1: Consent + Eligibility ──────────────────────────────────────
   if (buttonId === 'consent_yes' || buttonId === 'consent_no') {
@@ -296,6 +295,9 @@ async function handleMediaMessage(from, state, mediaObject) {
       break;
     case STATE.AWAIT_QR:
       await handleQRUpload(from, mediaObject);
+      break;
+    case STATE.AWAIT_KYC_VIDEO:
+      await handleKYCVideoUpload(from, mediaObject);
       break;
     default:
       await sendText(from,

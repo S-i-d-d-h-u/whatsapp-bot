@@ -182,6 +182,7 @@ export function getStateLabel(state) {
     PROFILING_FINANCE: { label: 'Financial consent',     phase: 3, color: 'amber' },
     LOAN_SELECTION:    { label: 'Loan amount input',     phase: 3, color: 'blue'  },
     KYC_READINESS:     { label: 'KYC readiness check',  phase: 4, color: 'amber' },
+    AWAIT_KYC_VIDEO:   { label: 'Awaiting KYC video',    phase: 4, color: 'blue'  },
     VIDEO_KYC: { label: 'Video KYC pending', phase: 4, color: 'amber' },
     AWAITING_APPROVAL: { label: 'Processing', phase: 4, color: 'amber' },
     REPAYMENT_MENU: { label: 'Repayment menu', phase: 5, color: 'blue' },

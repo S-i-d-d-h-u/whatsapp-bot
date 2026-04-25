@@ -404,7 +404,7 @@ const STATE_LABELS = {
   IDLE:'Not started', ONBOARDING:'Onboarding', COLLECT_PHONE:'Awaiting phone',
   COLLECT_UPI:'Awaiting UPI', CONSENT_GATE:'Consent gate',
   ELIGIBILITY_RESULT:'Eligibility shown', AWAIT_AADHAAR:'Awaiting Aadhaar',
-  AWAIT_PAN:'Awaiting PAN', AWAIT_PASSBOOK:'Awaiting passbook', AWAIT_QR:'Awaiting QR/UPI', PROFILING_REFS:'Collecting references', PROFILING_FINANCE:'Financial consent', LOAN_SELECTION:'Loan amount input', KYC_READINESS:'KYC readiness check',
+  AWAIT_PAN:'Awaiting PAN', AWAIT_PASSBOOK:'Awaiting passbook', AWAIT_QR:'Awaiting QR/UPI', PROFILING_REFS:'Collecting references', PROFILING_FINANCE:'Financial consent', LOAN_SELECTION:'Loan amount input', KYC_READINESS:'KYC readiness check', AWAIT_KYC_VIDEO:'Awaiting KYC video',
   VIDEO_KYC:'Video KYC pending', AWAITING_APPROVAL:'Processing approval',
   REPAYMENT_MENU:'Repayment menu', MONTHLY_EMI:'Monthly EMI input',
   MONTHLY_CONFIRM:'Monthly confirm', SEASONAL_HIGH:'Seasonal high months',
@@ -549,7 +549,7 @@ function renderPhase0(area, bar, action) {
   const stateColor = { IDLE:'var(--gray)', ONBOARDING:'var(--green)' };
   const welcomed = vendor.state !== 'IDLE';
   const started  = ['COLLECT_PHONE','COLLECT_UPI','CONSENT_GATE','ELIGIBILITY_RESULT',
-                    'AWAIT_AADHAAR','AWAIT_PAN','AWAIT_PASSBOOK','VIDEO_KYC',
+                    'AWAIT_AADHAAR','AWAIT_PAN','AWAIT_QR','AWAIT_KYC_VIDEO','VIDEO_KYC',
                     'AWAITING_APPROVAL','REPAYMENT_MENU','FINALIZED'].includes(vendor.state);
 
   area.innerHTML = `
@@ -627,12 +627,10 @@ function renderPhase1(area, bar, action) {
 
   if (s === 'CONSENT_GATE')        p1Step = 'consent';
   else if (s === 'ELIGIBILITY_RESULT') {
-    // Only advance to 'eligibility' if agent explicitly clicked proceed
-    // Otherwise show 'fetched' so agent confirms DB data first
     if (p1Step !== 'eligibility') p1Step = d.fetchedName ? 'fetched' : 'fetched';
   }
   else if (d.otpSent && !d.otpVerified) p1Step = 'otp';
-  else if (d.dbPath && !d.phone)        p1Step = 'phone';
+  else if (!d.phone)                    p1Step = 'phone';
 
   // Progress bar for the 5 sub-steps
   const steps = ['dbpath','phone','otp','consent','fetched','eligibility'];
@@ -658,26 +656,13 @@ function renderPhase1(area, bar, action) {
       </div>
     </div>
 
-    <!-- Step: DB Path selection -->
-    <div class="card ${p1Step === 'dbpath' ? '' : ''}" id="card-dbpath"
+    <!-- Step: Bank-linked phone (only option now) -->
+    <div class="card card-green" id="card-dbpath"
          style="display:${['dbpath','phone'].includes(p1Step) ? 'block' : 'none'}">
-      <div class="card-title">📲 Identity source</div>
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:12px">
-        Ask the vendor: <em>"Is your mobile number linked to your Aadhaar or your Bank Account?"</em>
+      <div class="card-title">🏦 Bank-linked number</div>
+      <p style="font-size:12px;color:var(--text-2)">
+        We verify using the mobile number linked to the vendor's bank account.
       </p>
-      ${d.dbPath
-        ? `<div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:10px">
-             ✅ Path selected: <strong>${d.dbPath === 'aadhaar' ? '🪪 Aadhaar-linked' : '🏦 Bank-linked'}</strong>
-           </div>`
-        : ''}
-      <div class="btn-row">
-        <button class="btn ${d.dbPath === 'aadhaar' ? 'btn-green' : 'btn-gray'}" onclick="selectDbPath('aadhaar')">
-          🪪 Aadhaar-linked
-        </button>
-        <button class="btn ${d.dbPath === 'bank' ? 'btn-green' : 'btn-gray'}" onclick="selectDbPath('bank')">
-          🏦 Bank-linked
-        </button>
-      </div>
     </div>
 
     <!-- Step: Phone number -->
@@ -892,26 +877,16 @@ async function confirmAndProceedDocs() {
 // Doc config — each entry maps to a session docs key + field schema
 const DOC_DEFS = [
   {
-    key:     'aadhaar',
-    label:   'Aadhaar / Voter ID',
+    key:     'ovd',
+    label:   'Identity Document (OVD)',
     emoji:   '🪪',
     state:   'AWAIT_AADHAAR',
+    sublabel: 'Aadhaar / Voter ID / Driving Licence / Ration Card / NREGA Job Card',
     fields:  [
-      { key: 'ocrName',     label: 'Name',       placeholder: 'Full name from document' },
-      { key: 'ocrIdNumber', label: 'ID Number',   placeholder: 'Aadhaar / Voter ID number', redact: true },
-      { key: 'ocrDob',      label: 'Date of Birth', placeholder: 'DD-MM-YYYY' },
-    ],
-  },
-  {
-    key:     'passbook',
-    label:   'Bank Passbook',
-    emoji:   '🏦',
-    state:   'AWAIT_PASSBOOK',
-    fields:  [
-      { key: 'ocrName',    label: 'Account Holder', placeholder: 'Name on passbook' },
-      { key: 'ocrAccount', label: 'Account No',     placeholder: 'Account number', redact: true },
-      { key: 'ocrBank',    label: 'Bank Name',      placeholder: 'e.g. State Bank of India' },
-      { key: 'ocrIfsc',    label: 'IFSC Code',      placeholder: 'e.g. SBIN0001234' },
+      { key: 'ocrName',      label: 'Name',          placeholder: 'Full name from document' },
+      { key: 'ocrIdNumber',  label: 'ID Number',     placeholder: 'Document ID number', redact: true },
+      { key: 'ocrDob',       label: 'Date of Birth', placeholder: 'DD-MM-YYYY' },
+      { key: 'docTypeLabel', label: 'Document type', placeholder: 'e.g. Aadhaar Card' },
     ],
   },
   {
@@ -930,7 +905,7 @@ function renderPhase2(area, bar, action) {
   const docs = vendor.data.docs || {};
 
   // Derive active doc from session state
-  const stateToDoc = { AWAIT_AADHAAR: 0, AWAIT_PAN: 0, AWAIT_PASSBOOK: 1, AWAIT_QR: 2 };
+  const stateToDoc = { AWAIT_AADHAAR: 0, AWAIT_PAN: 0, AWAIT_QR: 1 };
   let activeIdx = stateToDoc[vendor.state] ?? 0;
   // If all docs present, show the first non-approved one
   DOC_DEFS.forEach((d, i) => {
@@ -938,7 +913,7 @@ function renderPhase2(area, bar, action) {
     if (docs[d.key] && !docs[d.key].agentApproved) activeIdx = i;
   });
   // If none pending, stay at last
-  if (DOC_DEFS.every((d, i) => docs[d.key]?.agentApproved)) activeIdx = 2;
+  if (DOC_DEFS.every((d, i) => docs[d.key]?.agentApproved)) activeIdx = 1;
 
   area.innerHTML = `
     <!-- 3-step doc progress bar -->
@@ -1433,44 +1408,38 @@ function renderPhase4(area, bar, action) {
            </button>`}
     </div>
 
-    <!-- STAGE 2: Jitsi video call embed + link to vendor -->
+    <!-- STAGE 2: Instructions sent + waiting for vendor video -->
     <div class="card ${stage >= 2 ? 'card-green' : ''}"
          style="opacity:${stage >= 1 ? 1 : 0.4};pointer-events:${stage >= 1 ? 'auto' : 'none'}">
-      <div class="card-title">📹 Stage 2 — Join call &amp; send link to vendor</div>
-      ${stage >= 2 && kyc.link ? `
-        <div style="font-size:12px;color:var(--green);margin-bottom:8px;font-weight:600">
-          ✅ How-to-KYC image sent · Link sent to vendor
+      <div class="card-title">📹 Stage 2 — Send instructions &amp; await video</div>
+      ${stage >= 2 ? `
+        <div style="font-size:12px;color:var(--green);margin-bottom:10px;font-weight:600">
+          ✅ Instructions sent — waiting for vendor to upload video
         </div>
-        <!-- Agent joins via embedded Jitsi -->
-        <div style="margin-bottom:8px">
-          <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px">
-            Your video call (agent view):
+        <div style="background:var(--green-lt);border-radius:8px;padding:10px 12px;font-size:11px;
+                    color:var(--text-2);line-height:1.6">
+          <div style="font-weight:600;color:var(--text);margin-bottom:4px">Vendor was asked to:</div>
+          1. Face the camera and blink twice<br/>
+          2. Hold their identity document beside their face<br/>
+          3. Keep both visible for 5 seconds
+        </div>
+        ${kyc.videoMediaId ? `
+          <div style="background:var(--green-lt);border-radius:8px;padding:8px 12px;
+                      font-size:12px;color:var(--green);font-weight:600;margin-top:8px">
+            📥 Video received from vendor — proceed to Stage 3 to review and approve
           </div>
-          <div id="kycIframeWrap" style="border-radius:8px;overflow:hidden;border:1px solid var(--border)">
-            <iframe
-              src="${kyc.link}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&userInfo.displayName=SVANidhi+Agent"
-              allow="camera; microphone; fullscreen; display-capture"
-              style="width:100%;height:260px;border:none"
-              id="kycIframe">
-            </iframe>
-          </div>
-        </div>
-        <div style="background:var(--gray-lt);border-radius:6px;padding:6px 10px;
-                    font-size:10px;font-family:monospace;word-break:break-all;color:var(--text-2);margin-bottom:6px">
-          ${kyc.link}
-        </div>
-        <button class="btn btn-gray btn-full" onclick="resendKycLink()" style="font-size:11px">
-          🔁 Resend link to vendor
-        </button>
+        ` : `
+          <button class="btn btn-gray btn-full" style="margin-top:8px" onclick="nudgeKycVideo()">
+            💬 Remind vendor to send the video
+          </button>
+        `}
       ` : `
         <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">
-          Click below to start the video call. The system will:<br/>
-          1. Generate a unique Jitsi meeting room<br/>
-          2. Open it here so you join first<br/>
-          3. Send the same link to the vendor on WhatsApp
+          Once vendor confirms readiness, send the verification instructions.<br/>
+          The vendor will record a 15-second video and upload it here.
         </p>
         <button class="btn btn-green btn-full" style="padding:14px" onclick="generateAndSendLink()">
-          📹 Start video call &amp; send link to vendor
+          📸 Send video instructions to vendor
         </button>
       `}
     </div>
@@ -1508,20 +1477,26 @@ async function sendReadinessCheck() {
 async function generateAndSendLink() {
   const ok = await agentAction('start_kyc');
   if (ok) {
-    toast('Video call started — link sent to vendor');
-    addLog('KYC link generated and sent');
+    toast('Video instructions sent to vendor');
+    addLog('KYC video instructions sent');
     renderPhase(4);
   }
 }
 
-async function resendKycLink() {
-  const link = vendor.data?.kyc?.link;
-  if (!link) { toast('No link to resend', false); return; }
+async function nudgeKycVideo() {
   const ok = await agentAction('send_custom_message',
-    'Your Video KYC link: ' + link +
-    '\n\nTap the link to join the video call. Have your Aadhaar or Voter ID ready.\nThe call takes 3 to 5 minutes.'
+    'Please record and send your 15-second verification video.\n\n' +
+    'Steps:\n' +
+    '1. Face the camera\n' +
+    '2. Blink twice slowly\n' +
+    '3. Hold your identity document beside your face\n\n' +
+    'Tap the attachment icon and select Video to record and send.'
   );
-  if (ok) { toast('Link resent to vendor'); addLog('KYC link resent'); }
+  if (ok) { toast('Reminder sent to vendor'); addLog('KYC video nudge sent'); }
+}
+
+async function resendKycLink() {
+  await nudgeKycVideo();
 }
 
 async function approveKyc() {
@@ -2033,7 +2008,7 @@ function renderPhase6(area, bar, action) {
     { label: 'Entry & Authentication', done: true },
     { label: 'OTP Verification',       done: true },
     { label: 'Data consent & fetch',   done: true },
-    { label: 'Document upload & OCR',  done: !!(docs.aadhaar?.agentApproved && docs.passbook?.agentApproved) },
+    { label: 'Document upload & OCR',  done: !!(docs.ovd?.agentApproved && docs.qr?.agentApproved) },
     { label: 'Profile & eligibility',  done: !!vendor.data.loanAmount },
     { label: 'Video KYC',              done: vendor.state === 'REPAYMENT_MENU' || vendor.state === 'FINALIZED' },
     { label: 'Repayment plan',         done: vendor.state === 'FINALIZED' },
@@ -2118,18 +2093,13 @@ function renderPhase6(area, bar, action) {
       detail: d.dbPath ? (d.dbPath === 'aadhaar' ? 'Aadhaar DB' : 'Bank DB') : null,
     },
     {
-      label:  'Aadhaar / Voter ID uploaded & OCR verified',
-      done:   !!(docs.aadhaar?.agentApproved),
-      detail: docs.aadhaar?.ocrName || null,
-    },
-    {
-      label:  'Bank passbook uploaded & OCR verified',
-      done:   !!(docs.passbook?.agentApproved),
-      detail: docs.passbook?.ocrAccount ? 'A/C XXXX' + docs.passbook.ocrAccount.slice(-4) : null,
+      label:  'Identity document (OVD) uploaded & verified',
+      done:   !!(docs.ovd?.agentApproved),
+      detail: docs.ovd?.docTypeLabel ? docs.ovd.docTypeLabel + ' — ' + (docs.ovd.ocrName || '') : null,
     },
     {
       label:  'UPI / QR code',
-      done:   !!(docs.qr?.agentApproved || docs.qr?.status === 'skipped'),
+      done:   !!(docs.qr?.agentApproved),
       detail: docs.qr?.ocrUpiId !== 'SKIPPED' ? (docs.qr?.ocrUpiId || null) : 'Skipped',
     },
     {
@@ -2286,9 +2256,9 @@ async function approveDisbursement() {
 const STATE_TO_PHASE = {
   IDLE: 0, ONBOARDING: 0,
   COLLECT_PHONE: 1, COLLECT_UPI: 1, CONSENT_GATE: 1, ELIGIBILITY_RESULT: 1,
-  AWAIT_AADHAAR: 2, AWAIT_PAN: 2, AWAIT_PASSBOOK: 2, AWAIT_QR: 2,
+  AWAIT_AADHAAR: 2, AWAIT_PAN: 2, AWAIT_QR: 2,
   PROFILING_REFS: 3, PROFILING_FINANCE: 3, LOAN_SELECTION: 3,
-  KYC_READINESS: 4,
+  KYC_READINESS: 4, AWAIT_KYC_VIDEO: 4,
   VIDEO_KYC: 4, AWAITING_APPROVAL: 4,
   REPAYMENT_MENU: 5, MONTHLY_EMI: 5, MONTHLY_CONFIRM: 5,
   SEASONAL_HIGH: 5, SEASONAL_LOW: 5, SEASONAL_CONFIRM: 5,

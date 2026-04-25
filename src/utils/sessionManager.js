@@ -27,6 +27,7 @@ export const STATE = {
   LOAN_SELECTION:     'LOAN_SELECTION',
   // Phase 4 — Video KYC
   KYC_READINESS:      'KYC_READINESS',
+  AWAIT_KYC_VIDEO:    'AWAIT_KYC_VIDEO',
   VIDEO_KYC:          'VIDEO_KYC',
   AWAITING_APPROVAL:  'AWAITING_APPROVAL',
   // Phase 4 — Repayment
