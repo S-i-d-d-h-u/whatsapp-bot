@@ -17,7 +17,7 @@ export async function showRepaymentMenu(from) {
     await sendImage(
       from,
       REPAY_IMG,
-      'Your 3 repayment plan options — choose what works best for your business'
+      ''
     ).catch(err => console.error('[Repay] Image send failed:', err.message));
     await pause(500);
   }

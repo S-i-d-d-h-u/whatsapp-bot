@@ -14,25 +14,42 @@ export async function finalizePlan(from) {
   setSession(from, STATE.FINALIZED);
 
   const plan       = data.repaymentPlan || {};
-  const loanAmount = data.loanAmount    || 25000;
+  const loanAmount = data.loanAmount    || 30000;
   const loanRef    = data.approval?.loanRef || 'SVAN-' + Date.now().toString().slice(-8);
 
-  await sendText(from, 'Finalizing your application... Please wait a moment.');
-  await pause(1200);
+  await pause(600);
 
-  await sendSummaryTable(from, data, loanRef, loanAmount, plan);
-  await pause(900);
+  // Calculate first EMI date and amount
+  const firstEmiDate  = getFirstEmiDate(plan);
+  const firstEmiAmt   = getFirstEmiAmount(plan, loanAmount);
+  const disbursement  = data.approval?.disburseDate
+    ? formatDate(new Date(data.approval.disburseDate))
+    : formatDate(getNextWorkingDay());
 
-  await sendRepaymentSchedule(from, plan, loanAmount);
-  await pause(900);
+  // Single final message
+  await sendText(from,
+    'Your application is complete!\n\n' +
+    'Ref: ' + loanRef + '\n' +
+    'Amount: Rs.' + loanAmount.toLocaleString('en-IN') + '\n' +
+    'Disbursement: ' + disbursement + '\n\n' +
+    'First payment of Rs.' + firstEmiAmt.toLocaleString('en-IN') + ' is due on ' + firstEmiDate + '.\n\n' +
+    'You will receive a reminder before every payment.'
+  );
+}
 
-  await sendReminderDisclaimer(from, plan, loanAmount);
-  await pause(900);
+function getFirstEmiDate(plan) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  d.setDate(1);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 
-  await sendClosingMessage(from);
-  await pause(800);
-
-  await sendSupportMenu(from);
+function getFirstEmiAmount(plan, loanAmount) {
+  if (!plan?.type) return Math.ceil((loanAmount * 1.10) / 6);
+  if (plan.type === 'MONTHLY')  return plan.emi  || Math.ceil((loanAmount * 1.10) / (plan.tenure || 6));
+  if (plan.type === 'SEASONAL') return plan.highPayment || Math.ceil((loanAmount * 1.10) / 12);
+  if (plan.type === 'MICRO')    return plan.dailyAmount  || Math.ceil((loanAmount * 1.10) / 180);
+  return Math.ceil((loanAmount * 1.10) / 6);
 }
 
 async function sendSummaryTable(from, data, loanRef, loanAmount, plan) {

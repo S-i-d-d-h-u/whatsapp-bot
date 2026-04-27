@@ -3,7 +3,7 @@ import { getSession, STATE }           from '../utils/sessionManager.js';
 import { startOnboarding }             from './phase0_onboarding.js';
 import {
   handleCollectPhone, handlePhoneInput, handleDbPathChoice,
-  handleOtpInput, handleUPIInput,
+  handleOtpInput, handleUPIInput, sendOtpToVendor,
   handleConsentReply, handleEligibilityReply, handleFinalEligibilityProceed,
 }                                      from './phase1_loanCustomization.js';
 import { handlePANSkip, startDocumentUpload,
@@ -41,7 +41,7 @@ export async function routeAgentAction(vendorPhone, action, value) {
       break;
     case 'submit_phone':
       if (!value) throw new Error('Phone value required');
-      await handlePhoneInput(from, value);
+      await sendOtpToVendor(from, value);
       break;
     case 'verify_otp':
       if (!value) throw new Error('OTP value required');
