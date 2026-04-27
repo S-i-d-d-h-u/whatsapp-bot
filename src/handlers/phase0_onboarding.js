@@ -33,10 +33,8 @@ export async function handleOnboardingReply(from, buttonId) {
       'Call us on'
     );
   } else if (buttonId === 'onboard_self' || buttonId === 'onboard_yes') {
-    // Self-avail flow — to be built later
-    // For now route to assisted flow
-    const { handleCollectPhone } = await import('./phase1_loanCustomization.js');
-    await handleCollectPhone(from);
+    const { soloStart } = await import('./soloFlow.js');
+    await soloStart(from);
   } else {
     clearSession(from);
   }

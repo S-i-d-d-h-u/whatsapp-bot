@@ -50,6 +50,14 @@ import { handleRepaymentSelection,
          showRepaymentMenu }              from './phase4_repayment.js';
 import { handleSupportSelection,
          handleFinalizedText }            from './phase6_finalization.js';
+import {
+  soloStart, soloHandlePhone, soloHandleOtp, soloHandleConsent,
+  soloHandleDbConfirm, soloHandleOVD, soloHandleOVDConfirm,
+  soloHandleOVDCorrection, soloHandleQR, soloHandleQRConfirm,
+  soloHandleQRCorrection, soloHandleRefs, soloHandleFinancialConsent,
+  soloHandleLoanAmount, soloHandleKYCVideo, soloHandleRepaySelect,
+  soloHandleMicroRate, soloHandlePlanConfirm,
+}                                          from './soloFlow.js';
 
 // ── Universal restart keywords ─────────────────────────────────────────────
 const RESTART_WORDS = new Set(['hi','hello','hey','start','restart','menu','namaste','julley']);
@@ -109,18 +117,19 @@ async function handleTextMessage(from, state, text) {
     // Phase 1 — text input states
     case STATE.COLLECT_PHONE: {
       const { data } = getSession(from);
-      if (data.otpSent && !data.otpVerified) {
-        // Vendor is typing their OTP
+      if (data.soloFlow && data.otpSent && !data.otpVerified) {
+        await soloHandleOtp(from, text);
+      } else if (data.soloFlow && !data.otpSent) {
+        await soloHandlePhone(from, text);
+      } else if (data.otpSent && !data.otpVerified) {
         if (text.toLowerCase() === 'resend') {
           await handlePhoneInput(from, data.phone || text);
         } else {
           await handleOtpInput(from, text);
         }
       } else if (data.awaitingPhoneEntry || data.dbPath) {
-        // Vendor is typing their phone number
         await handlePhoneInput(from, text);
       } else {
-        // Default — ask for phone
         await handlePhoneInput(from, text);
       }
       break;
@@ -139,16 +148,41 @@ async function handleTextMessage(from, state, text) {
       break;
 
     // Phase 3 — Profiling: references and financial consent
-    case STATE.PROFILING_REFS:
-      await handleReferencesInput(from, text);
+    case STATE.PROFILING_REFS: {
+      const { data: refsData } = getSession(from);
+      if (refsData.soloFlow) {
+        await soloHandleRefs(from, text);
+      } else {
+        await handleReferencesInput(from, text);
+      }
       break;
+    }
 
-    case STATE.PROFILING_FINANCE:
-      await sendText(from, 'Please tap one of the buttons above to consent to the financial check.');
+    case STATE.PROFILING_FINANCE: {
+      const { data: finData } = getSession(from);
+      if (!finData.soloFlow) await sendText(from, 'Please tap one of the buttons above to consent to the financial check.');
       break;
+    }
 
-    case STATE.LOAN_SELECTION:
-      await handleLoanAmountInput(from, text);
+    case STATE.LOAN_SELECTION: {
+      const { data: loanData } = getSession(from);
+      if (loanData.soloFlow) {
+        await soloHandleLoanAmount(from, text);
+      } else {
+        await handleLoanAmountInput(from, text);
+      }
+      break;
+    }
+
+    // Solo flow text states
+    case STATE.SOLO_OVD_CORRECT:
+      await soloHandleOVDCorrection(from, text);
+      break;
+    case STATE.SOLO_QR_CORRECT:
+      await soloHandleQRCorrection(from, text);
+      break;
+    case STATE.SOLO_MICRO_RATE:
+      await soloHandleMicroRate(from, text);
       break;
 
     // Phase 4 — KYC pending; remind user
@@ -205,7 +239,16 @@ async function handleTextMessage(from, state, text) {
 async function handleButtonMessage(from, state, buttonId) {
   if (!buttonId) return;
 
- // ── Phase 0: Onboarding ──────────────────────────────────────────────────
+  // ── Solo flow buttons ─────────────────────────────────────────────────────
+  if (buttonId === 'solo_consent_yes' || buttonId === 'solo_consent_no') { await soloHandleConsent(from, buttonId); return; }
+  if (buttonId === 'solo_db_yes'      || buttonId === 'solo_db_no')      { await soloHandleDbConfirm(from, buttonId); return; }
+  if (buttonId === 'solo_ovd_yes'     || buttonId === 'solo_ovd_no')     { await soloHandleOVDConfirm(from, buttonId); return; }
+  if (buttonId === 'solo_qr_yes'      || buttonId === 'solo_qr_no')      { await soloHandleQRConfirm(from, buttonId); return; }
+  if (buttonId === 'solo_finance_yes' || buttonId === 'solo_finance_no') { await soloHandleFinancialConsent(from, buttonId); return; }
+  if (buttonId === 'solo_repay_fixed' || buttonId === 'solo_repay_micro'){ await soloHandleRepaySelect(from, buttonId); return; }
+  if (buttonId === 'solo_plan_confirm'|| buttonId === 'solo_plan_change') { await soloHandlePlanConfirm(from, buttonId); return; }
+
+  // ── Phase 0: Onboarding ──────────────────────────────────────────────────
   if (buttonId === 'onboard_yes' || buttonId === 'onboard_no' || buttonId === 'onboard_call') {
     await handleOnboardingReply(from, buttonId);
     return;
@@ -284,21 +327,39 @@ async function handleButtonMessage(from, state, buttonId) {
 // ══════════════════════════════════════════════════════════════════════════
 async function handleMediaMessage(from, state, mediaObject) {
   switch (state) {
-    case STATE.AWAIT_AADHAAR:
-      await handleAadhaarUpload(from, mediaObject);
+    case STATE.AWAIT_AADHAAR: {
+      const { data: ovdData } = getSession(from);
+      if (ovdData.soloFlow) {
+        await soloHandleOVD(from, mediaObject);
+      } else {
+        await handleAadhaarUpload(from, mediaObject);
+      }
       break;
+    }
     case STATE.AWAIT_PAN:
       await handlePANUpload(from, mediaObject);
       break;
     case STATE.AWAIT_PASSBOOK:
       await handlePassbookUpload(from, mediaObject);
       break;
-    case STATE.AWAIT_QR:
-      await handleQRUpload(from, mediaObject);
+    case STATE.AWAIT_QR: {
+      const { data: qrData } = getSession(from);
+      if (qrData.soloFlow) {
+        await soloHandleQR(from, mediaObject);
+      } else {
+        await handleQRUpload(from, mediaObject);
+      }
       break;
-    case STATE.AWAIT_KYC_VIDEO:
-      await handleKYCVideoUpload(from, mediaObject);
+    }
+    case STATE.AWAIT_KYC_VIDEO: {
+      const { data: kycData } = getSession(from);
+      if (kycData.soloFlow) {
+        await soloHandleKYCVideo(from, mediaObject);
+      } else {
+        await handleKYCVideoUpload(from, mediaObject);
+      }
       break;
+    }
     default:
       await sendText(from,
         `I received your file, but I'm not expecting a document right now.\n\n` +

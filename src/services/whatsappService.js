@@ -32,6 +32,21 @@ export function sendImage(to, imageUrl, caption = '') {
   });
 }
 
+
+// ── Audio message (voice note) ─────────────────────────────────
+// Uses Google Translate TTS as a free demo TTS service
+// In production replace with a proper TTS API
+export function sendAudio(to, text) {
+  // Google TTS URL — works for short strings up to ~200 chars
+  const encoded = encodeURIComponent(text.slice(0, 200));
+  const ttsUrl  = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=en&client=tw-ob`;
+  return send({
+    to,
+    type:  'audio',
+    audio: { link: ttsUrl },
+  });
+}
+
 // ── Reply Buttons (max 3) ─────────────────────────────────────
 export function sendButtons(to, bodyText, buttons, headerText = null, footerText = null) {
   const interactive = {
