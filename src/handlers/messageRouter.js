@@ -249,7 +249,7 @@ async function handleButtonMessage(from, state, buttonId) {
   if (buttonId === 'solo_plan_confirm'|| buttonId === 'solo_plan_change') { await soloHandlePlanConfirm(from, buttonId); return; }
 
   // ── Phase 0: Onboarding ──────────────────────────────────────────────────
-  if (buttonId === 'onboard_yes' || buttonId === 'onboard_no' || buttonId === 'onboard_call') {
+  if (buttonId === 'onboard_yes' || buttonId === 'onboard_no' || buttonId === 'onboard_call' || buttonId === 'onboard_self') {
     await handleOnboardingReply(from, buttonId);
     return;
   }
