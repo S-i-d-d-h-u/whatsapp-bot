@@ -79,10 +79,13 @@ export async function extractTextFromImage(mediaId) {
 async function parseDocumentFields(rawText) {
   try {
     const prompt =
-      'Extract these fields from the following Indian identity document text. ' +
-      'Return ONLY a JSON object with these exact keys: name, idNumber, dob. ' +
-      'For dob use DD-MM-YYYY format. For idNumber include all digits with spaces or dashes as printed. ' +
-      'If a field is not found, use null. Do not include any explanation.\n\n' +
+      'You are extracting personal details from an Indian identity document (Aadhaar, Voter ID, Driving Licence, Ration Card, or NREGA Job Card).\n\n' +
+      'Rules:\n' +
+      '1. NAME: The personal name of the card holder. IGNORE these — they are NOT names: "Government of India", "Bharat Sarkar", "Election Commission", "Ministry", "UIDAI", "भारत सरकार", "भारत निर्वाचन आयोग", any organisation or institution name. The real name is a person\'s name, usually appearing after the header lines. On Aadhaar cards it appears in the regional language first, then in English — use the English version.\n' +
+      '2. IDNUMBER: The document ID number. For Aadhaar it is 12 digits in groups of 4 (e.g. 8416 1590 3267). For Voter ID it is like ABC1234567. Include exactly as printed.\n' +
+      '3. DOB: Date of birth in DD-MM-YYYY format. It may appear as DOB:, Date of Birth:, பிறந்த நாள், जन्म तिथि, etc.\n\n' +
+      'Return ONLY a JSON object: {"name": "...", "idNumber": "...", "dob": "..."}\n' +
+      'Use null for any field not found. No explanation, no markdown, just the JSON.\n\n' +
       'Document text:\n' + rawText.slice(0, 1000);
 
     const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
@@ -124,16 +127,43 @@ async function parseDocumentFields(rawText) {
 }
 
 // ── Regex fallback ─────────────────────────────────────────────
+// Lines that are headers/labels — never a person's name
+const SKIP_LINES = [
+  'government of india', 'bharat sarkar', 'election commission of india',
+  'election commission', 'ministry of', 'uidai', 'unique identification',
+  'income tax department', 'driving licence', 'driving license',
+  'motor vehicles', 'transport department', 'ration card',
+  'national rural employment', 'nrega', 'mahatma gandhi',
+  'republic of india', 'india', 'male', 'female', 'transgender',
+  'aadhaar', 'aadhar', 'voter id', 'epic',
+];
+
+function isHeaderLine(line) {
+  const lower = line.toLowerCase();
+  return SKIP_LINES.some(skip => lower.includes(skip));
+}
+
 function regexFallback(text) {
   // Aadhaar: 12 digits in groups of 4 (e.g. 1234 5678 9012)
   const aadhaarMatch = text.match(/\b\d{4}\s\d{4}\s\d{4}\b/);
   // Voter ID: 3 letters + 7 digits (e.g. ABC1234567)
   const voterMatch   = text.match(/\b[A-Z]{3}\d{7}\b/);
-  // Driving licence: e.g. DL-1420110012345
+  // Driving licence
   const dlMatch      = text.match(/[A-Z]{2}[\-\s]?\d{2}[\-\s]?\d{4}[\-\s]?\d{7}\b/i);
-  // Name: first all-caps or title-case line of 2+ words
-  const lines        = text.split('\n').map(l => l.replace(/\*\*/g,'').trim()).filter(Boolean);
-  const nameLine     = lines.find(l => /^[A-Za-z\s]{5,40}$/.test(l) && l.split(' ').length >= 2) || null;
+
+  // Name: find English name line — skip known headers, skip lines with digits,
+  // skip single words, look for 2+ word lines that look like a person's name
+  const lines = text.split('\n')
+    .map(l => l.replace(/\*\*/g,'').replace(/[*_#]/g,'').trim())
+    .filter(Boolean);
+
+  const nameLine = lines.find(l =>
+    /^[A-Za-z][A-Za-z\s\.]{4,39}$/.test(l) &&   // only letters, spaces, dots
+    l.split(/\s+/).length >= 2 &&                   // at least 2 words
+    !isHeaderLine(l) &&                              // not a header
+    !/\d/.test(l) &&                                 // no digits
+    !/^(DOB|Date|Male|Female|S\/O|D\/O|W\/O)/i.test(l) // not a label
+  ) || null;
 
   return {
     name:       nameLine,
