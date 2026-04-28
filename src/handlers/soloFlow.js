@@ -122,10 +122,10 @@ export async function soloHandleOVD(from, mediaObject) {
 
   const fullText = ocrResult?.fullText || '';
   const keyData  = ocrResult?.keyData  || {};
-  const lines    = fullText.split('\n').map(l => l.trim()).filter(Boolean);
-  const nameLine = lines.find(l => /^[A-Za-z\s]{4,40}$/.test(l)) || 'Not detected';
+  // Use structured fields from Sarvam chat parser
+  const nameLine = keyData.name     || 'Not detected';
   const idNum    = keyData.idNumber || 'Not detected';
-  const dob      = keyData.dateFound || '';
+  const dob      = keyData.dob      || keyData.dateFound || '';
 
   let docType = 'aadhaar';
   const ft = fullText.toLowerCase();

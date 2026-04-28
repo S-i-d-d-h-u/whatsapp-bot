@@ -29,8 +29,8 @@ export async function handleAadhaarUpload(from, mediaObject) {
 
   const fullText = ocrResult?.fullText || '';
   const keyData  = ocrResult?.keyData  || {};
-  const lines    = fullText.split('\n').map(l => l.trim()).filter(Boolean);
-  const nameLine = lines.find(l => /^[A-Za-z\s]{4,40}$/.test(l)) || '';
+  // Use structured fields from Sarvam chat parser
+  const nameLine = keyData.name || '';
 
   let docType = 'aadhaar';
   const ft = fullText.toLowerCase();
@@ -43,8 +43,10 @@ export async function handleAadhaarUpload(from, mediaObject) {
     mediaId: mediaObject.id, mimeType: mediaObject.mime_type,
     receivedAt: new Date().toISOString(), status: 'pending_review',
     docType, docTypeLabel: OVD_NAMES[docType] || 'Identity Document',
-    ocrRaw: fullText.slice(0, 400), ocrName: nameLine,
-    ocrIdNumber: keyData.idNumber || '', ocrDob: keyData.dateFound || '',
+    ocrRaw: fullText.slice(0, 400),
+    ocrName:     keyData.name      || nameLine || '',
+    ocrIdNumber: keyData.idNumber  || '',
+    ocrDob:      keyData.dob       || keyData.dateFound || '',
     agentApproved: false,
   });
 }

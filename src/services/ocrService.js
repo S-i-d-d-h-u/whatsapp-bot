@@ -1,132 +1,194 @@
-// src/services/ocrService.js — Sarvam Vision OCR (replaces Google Vision)
-// Uses Sarvam's Document Intelligence job API which accepts JPG/PNG images
-import fetch    from 'node-fetch';
-import fs       from 'fs';
-import path     from 'path';
-import os       from 'os';
-import { SarvamAIClient } from 'sarvamai';
+// src/services/ocrService.js — Sarvam Vision OCR v3
+// Uses Document Intelligence to extract text, then Sarvam chat to parse fields
+import fetch from 'node-fetch';
+import fs   from 'fs';
+import path from 'path';
+import os   from 'os';
+import { createInflateRaw } from 'zlib';
+import { SarvamAIClient }   from 'sarvamai';
 
 const client = new SarvamAIClient({
   apiSubscriptionKey: process.env.SARVAM_API_KEY || '',
 });
 
 export async function extractTextFromImage(mediaId) {
-  console.log(`[OCR-Sarvam] Starting for mediaId: ${mediaId}`);
+  console.log(`[OCR] Starting for mediaId: ${mediaId}`);
 
-  // ── Step 1: Get media URL from WhatsApp ──────────────────────
+  // ── Step 1: Get WhatsApp media URL ───────────────────────────
   const mediaRes  = await fetch(
     `https://graph.facebook.com/v21.0/${mediaId}`,
     { headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` } }
   );
   const mediaData = await mediaRes.json();
-  if (!mediaRes.ok || mediaData.error) {
+  if (!mediaRes.ok || mediaData.error)
     throw new Error(`Media URL fetch failed: ${mediaData.error?.message || mediaRes.status}`);
-  }
-  const mediaUrl = mediaData.url;
-  if (!mediaUrl) throw new Error('No media URL in WhatsApp response');
 
-  // ── Step 2: Download image to a temp file ────────────────────
-  const imgRes = await fetch(mediaUrl, {
+  // ── Step 2: Download image to temp file ───────────────────────
+  const imgRes = await fetch(mediaData.url, {
     headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
   });
   if (!imgRes.ok) throw new Error(`Image download failed: HTTP ${imgRes.status}`);
 
-  const arrayBuffer = await imgRes.arrayBuffer();
-  const buffer      = Buffer.from(arrayBuffer);
+  const buf    = Buffer.from(await imgRes.arrayBuffer());
+  const mime   = mediaData.mime_type || 'image/jpeg';
+  const ext    = mime.includes('png') ? '.png' : '.jpg';
+  const tmpImg = path.join(os.tmpdir(), `svanidhi_${mediaId}${ext}`);
+  const tmpZip = path.join(os.tmpdir(), `svanidhi_${mediaId}.zip`);
+  fs.writeFileSync(tmpImg, buf);
+  console.log(`[OCR] Image saved (${buf.length} bytes)`);
 
-  // Detect mime type from buffer header to set correct extension
-  const mime = mediaData.mime_type || 'image/jpeg';
-  const ext  = mime.includes('png') ? '.png' : '.jpg';
-  const tmpPath = path.join(os.tmpdir(), `svanidhi_ocr_${mediaId}${ext}`);
-
-  fs.writeFileSync(tmpPath, buffer);
-  console.log(`[OCR-Sarvam] Image saved to ${tmpPath} (${buffer.length} bytes)`);
-
+  let fullText = '';
   try {
-    // ── Step 3: Create Sarvam Document Intelligence job ────────
-    // Language: en-IN works for all OVDs (Aadhaar, Voter ID etc)
-    // which are in English or bilingual (English + regional language)
+    // ── Step 3: Sarvam Document Intelligence job ─────────────────
     const job = await client.documentIntelligence.createJob({
       language:     'en-IN',
       outputFormat: 'md',
     });
-    console.log(`[OCR-Sarvam] Job created: ${job.jobId}`);
+    console.log(`[OCR] Job: ${job.jobId}`);
 
-    // ── Step 4: Upload the image file ──────────────────────────
-    await job.uploadFile(tmpPath);
-    console.log(`[OCR-Sarvam] File uploaded`);
-
-    // ── Step 5: Start processing ───────────────────────────────
+    await job.uploadFile(tmpImg);
     await job.start();
-    console.log(`[OCR-Sarvam] Job started`);
 
-    // ── Step 6: Wait for completion (timeout 30s) ──────────────
     const status = await job.waitUntilComplete();
-    console.log(`[OCR-Sarvam] Job state: ${status.job_state}`);
+    console.log(`[OCR] State: ${status.job_state}`);
 
-    if (status.job_state !== 'COMPLETED') {
-      throw new Error(`Sarvam OCR job ended with state: ${status.job_state}`);
-    }
+    if (status.job_state === 'Failed')
+      throw new Error('Sarvam OCR job failed');
 
-    // ── Step 7: Get output text ─────────────────────────────────
-    // The markdown output contains the extracted text
-    const metrics = job.getPageMetrics();
-    const pages   = metrics?.pages || [];
-
-    // Reconstruct full text from page data
-    let fullText = '';
-    if (pages.length > 0) {
-      fullText = pages.map(p => p.markdown || p.text || '').join('\n').trim();
-    }
-
-    // Fallback: try downloading output ZIP and reading the markdown
-    if (!fullText) {
-      const outPath = path.join(os.tmpdir(), `svanidhi_ocr_out_${mediaId}.zip`);
-      try {
-        await job.downloadOutput(outPath);
-        // Extract markdown from zip using native Node.js
-        // (simple approach: read the zip bytes and find text between common markers)
-        const zipBuf = fs.readFileSync(outPath);
-        // The zip contains a .md file — extract its content as text
-        fullText = extractTextFromZip(zipBuf);
-        fs.unlinkSync(outPath);
-      } catch (zipErr) {
-        console.error('[OCR-Sarvam] ZIP extraction failed:', zipErr.message);
-      }
-    }
-
-    console.log(`[OCR-Sarvam] Extracted ${fullText.length} characters`);
-    return { fullText, keyData: extractKeyFields(fullText) };
+    // ── Step 4: Download ZIP and extract markdown ─────────────────
+    await job.downloadOutput(tmpZip);
+    fullText = await extractMarkdownFromZip(tmpZip);
+    console.log(`[OCR] Raw text (${fullText.length} chars):\n${fullText.slice(0, 300)}`);
 
   } finally {
-    // Always clean up the temp file
-    try { fs.unlinkSync(tmpPath); } catch (_) {}
+    try { fs.unlinkSync(tmpImg); } catch (_) {}
+    try { fs.unlinkSync(tmpZip); } catch (_) {}
+  }
+
+  if (!fullText) throw new Error('No text extracted from document');
+
+  // ── Step 5: Use Sarvam chat to parse Name, ID, DOB ────────────
+  const keyData = await parseDocumentFields(fullText);
+  console.log(`[OCR] Parsed fields:`, keyData);
+
+  return { fullText, keyData };
+}
+
+// ── Use Sarvam-2B chat to extract structured fields ────────────
+// This is much more reliable than regex for Indian documents
+async function parseDocumentFields(rawText) {
+  try {
+    const prompt =
+      'Extract these fields from the following Indian identity document text. ' +
+      'Return ONLY a JSON object with these exact keys: name, idNumber, dob. ' +
+      'For dob use DD-MM-YYYY format. For idNumber include all digits with spaces or dashes as printed. ' +
+      'If a field is not found, use null. Do not include any explanation.\n\n' +
+      'Document text:\n' + rawText.slice(0, 1000);
+
+    const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+      method:  'POST',
+      headers: {
+        'Content-Type':          'application/json',
+        'api-subscription-key':  process.env.SARVAM_API_KEY || '',
+      },
+      body: JSON.stringify({
+        model:       'sarvam-m',
+        messages:    [{ role: 'user', content: prompt }],
+        max_tokens:  150,
+        temperature: 0,
+      }),
+    });
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    console.log(`[OCR] Chat response: ${content}`);
+
+    // Strip markdown code fences if present
+    const clean = content.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    return {
+      name:       parsed.name       || null,
+      idNumber:   parsed.idNumber   || parsed.id_number || null,
+      dob:        parsed.dob        || null,
+      dateFound:  parsed.dob        || regexDate(rawText),
+      panNumber:  regexPAN(rawText),
+      phoneFound: regexPhone(rawText),
+      accountNum: regexAccount(rawText),
+    };
+  } catch (err) {
+    console.error('[OCR] Chat parse failed, falling back to regex:', err.message);
+    // Fallback to regex if chat API fails
+    return regexFallback(rawText);
   }
 }
 
-// ── Extract text from Sarvam's output ZIP ─────────────────────
-// The ZIP contains a single .md file with the OCR output
-// We do a simple byte search for readable text since we don't
-// want to add a zip library dependency
-function extractTextFromZip(zipBuffer) {
-  // ZIP local file headers start with PK\x03\x04
-  // Find the deflated content after the header
-  const text = zipBuffer.toString('utf8', 0, zipBuffer.length);
-  // Pull out anything that looks like readable text (alphanumeric + common punctuation)
-  const readable = text.replace(/[^\x20-\x7E\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
-  // Return the longest continuous readable segment
-  const segments = readable.split(/\s{5,}/);
-  return segments.sort((a,b) => b.length - a.length)[0] || '';
+// ── Regex fallback ─────────────────────────────────────────────
+function regexFallback(text) {
+  // Aadhaar: 12 digits in groups of 4 (e.g. 1234 5678 9012)
+  const aadhaarMatch = text.match(/\b\d{4}\s\d{4}\s\d{4}\b/);
+  // Voter ID: 3 letters + 7 digits (e.g. ABC1234567)
+  const voterMatch   = text.match(/\b[A-Z]{3}\d{7}\b/);
+  // Driving licence: e.g. DL-1420110012345
+  const dlMatch      = text.match(/[A-Z]{2}[\-\s]?\d{2}[\-\s]?\d{4}[\-\s]?\d{7}\b/i);
+  // Name: first all-caps or title-case line of 2+ words
+  const lines        = text.split('\n').map(l => l.replace(/\*\*/g,'').trim()).filter(Boolean);
+  const nameLine     = lines.find(l => /^[A-Za-z\s]{5,40}$/.test(l) && l.split(' ').length >= 2) || null;
+
+  return {
+    name:       nameLine,
+    idNumber:   aadhaarMatch?.[0] || voterMatch?.[0] || dlMatch?.[0] || regexIdNumber(text),
+    dob:        regexDate(text),
+    dateFound:  regexDate(text),
+    panNumber:  regexPAN(text),
+    phoneFound: regexPhone(text),
+    accountNum: regexAccount(text),
+  };
 }
 
-// ── Extract key fields from OCR text ──────────────────────────
-function extractKeyFields(text) {
-  return {
-    dateFound:  text.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/)?.[0]  || null,
-    idNumber:   text.match(/\b[A-Z]{0,2}\d{6,12}\b/)?.[0]                   || null,
-    panNumber:  text.match(/[A-Z]{5}[0-9]{4}[A-Z]/)?.[0]                    || null,
-    emailFound: text.match(/[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/)?.[0]            || null,
-    phoneFound: text.match(/\+?[\d\s\-().]{7,15}/)?.[0]?.trim()             || null,
-    accountNum: text.match(/\b\d{9,18}\b/)?.[0]                             || null,
-  };
+function regexDate(t)    { return t.match(/\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/)?.[0] || null; }
+function regexIdNumber(t){ return t.match(/\b[A-Z]{0,2}\d{6,12}\b/)?.[0] || null; }
+function regexPAN(t)     { return t.match(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/)?.[0] || null; }
+function regexPhone(t)   { return t.match(/\b[6-9]\d{9}\b/)?.[0] || null; }
+function regexAccount(t) { return t.match(/\b\d{9,18}\b/)?.[0] || null; }
+
+// ── Parse ZIP and extract .md content ─────────────────────────
+async function extractMarkdownFromZip(zipPath) {
+  const zip = fs.readFileSync(zipPath);
+  let text = '';
+  let offset = 0;
+
+  while (offset < zip.length - 4) {
+    if (zip[offset]   !== 0x50 || zip[offset+1] !== 0x4B ||
+        zip[offset+2] !== 0x03 || zip[offset+3] !== 0x04) {
+      offset++; continue;
+    }
+    const compression    = zip.readUInt16LE(offset + 8);
+    const compressedSz   = zip.readUInt32LE(offset + 18);
+    const fileNameLen    = zip.readUInt16LE(offset + 26);
+    const extraLen       = zip.readUInt16LE(offset + 28);
+    const fileName       = zip.slice(offset + 30, offset + 30 + fileNameLen).toString('utf8');
+    const dataOffset     = offset + 30 + fileNameLen + extraLen;
+    const compressed     = zip.slice(dataOffset, dataOffset + compressedSz);
+
+    if (fileName.endsWith('.md') || fileName.endsWith('.txt')) {
+      let content = '';
+      if (compression === 0) {
+        content = compressed.toString('utf8');
+      } else if (compression === 8) {
+        content = await new Promise((res, rej) => {
+          const chunks = [];
+          const inf = createInflateRaw();
+          inf.on('data', c => chunks.push(c));
+          inf.on('end',  () => res(Buffer.concat(chunks).toString('utf8')));
+          inf.on('error', rej);
+          inf.write(compressed); inf.end();
+        });
+      }
+      console.log(`[OCR] File: ${fileName} → ${content.length} chars`);
+      text += content + '\n';
+    }
+    offset = dataOffset + compressedSz;
+  }
+  return text.trim();
 }
