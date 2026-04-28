@@ -2,7 +2,7 @@
 import { sendText, sendButtons } from '../services/whatsappService.js';
 import { setSession, getSession, updateSessionData, STATE } from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
-
+import { extractQRCodeUPI } from '../services/qrCodeService.js';
 const pause = ms => new Promise(r => setTimeout(r, ms));
 const OVD_NAMES = { aadhaar:'Aadhaar Card', voter:'Voter ID (EPIC)', driving:'Driving Licence', ration:'Ration Card', nrega:'NREGA Job Card' };
 
@@ -59,16 +59,19 @@ export async function requestQRCode(from) {
 
 export async function handleQRUpload(from, mediaObject) {
   await sendText(from, 'Received. Your agent is reviewing it.');
-  let ocrResult = null;
-  try { ocrResult = await extractTextFromImage(mediaObject.id); } catch (e) {}
 
-  const fullText = ocrResult?.fullText || '';
-  const upiMatch = fullText.match(/[\w.\-]+@[a-z]+/i);
+  let upiId = '';
+  try {
+    const qrResult = await extractQRCodeUPI(mediaObject.id);
+    if (qrResult.success) {
+      upiId = qrResult.upiId;
+    }
+  } catch (e) {}
 
   mergeDocs(from, 'qr', {
     mediaId: mediaObject.id, mimeType: mediaObject.mime_type,
     receivedAt: new Date().toISOString(), status: 'pending_review',
-    ocrRaw: fullText.slice(0, 400), ocrUpiId: upiMatch?.[0] || '',
+    ocrUpiId: upiId,
     agentApproved: false,
   });
 }

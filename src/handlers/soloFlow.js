@@ -5,8 +5,8 @@ import { sendText, sendButtons, sendImage, sendList } from '../services/whatsapp
 import { sendSpeak, sendSpeakButtons }                from '../utils/speak.js';
 import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
-import { extractTextFromImage }                       from '../services/ocrService.js';
-
+import { extractTextFromImage } from '../services/ocrService.js';
+import { extractQRCodeUPI } from '../services/qrCodeService.js';
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
 const KYC_IMG   = process.env.KYC_IMG_URL   || '';
 const MAX_LOAN  = 30000;
@@ -197,14 +197,16 @@ async function soloRequestQR(from) {
 
 export async function soloHandleQR(from, mediaObject) {
   await sendSpeak(from, 'Received. Processing your QR code.');
-  let ocrResult = null;
-  try { ocrResult = await extractTextFromImage(mediaObject.id); } catch (e) {}
 
-  const fullText = ocrResult?.fullText || '';
-  const upiMatch = fullText.match(/[\w.\-]+@[a-z]+/i);
-  const upiId    = upiMatch?.[0] || 'Not detected';
+  let upiId = 'Not detected';
+  try {
+    const qrResult = await extractQRCodeUPI(mediaObject.id);
+    if (qrResult.success) {
+      upiId = qrResult.upiId;
+    }
+  } catch (e) {}
 
-  updateSessionData(from, { soloQrTemp: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type, ocrUpiId: upiId, ocrRaw: fullText.slice(0,400) } });
+  updateSessionData(from, { soloQrTemp: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type, ocrUpiId: upiId } });
   setSession(from, STATE.SOLO_QR_CONFIRM);
   updateSessionData(from, { soloFlow: true });
 
