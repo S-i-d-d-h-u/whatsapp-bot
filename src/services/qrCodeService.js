@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
-import Jimp from 'jimp';
+import { Jimp } from 'jimp';
 import jsQR from 'jsqr';
 
 // Download image from WhatsApp using media ID
