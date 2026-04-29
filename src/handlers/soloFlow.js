@@ -60,11 +60,8 @@ export async function soloStart(from) {
   setSession(from, STATE.COLLECT_PHONE);
   updateSessionData(from, { soloFlow: true, dbPath: 'bank', awaitingPhoneEntry: true });
   await sendMsg(from, {
-    speak: 'Welcome to PM SVANidhi! I will help you apply for your street vendor loan. Please enter your 10-digit bank-linked mobile number.',
-    text:
-      '👋 *Welcome to PM SVANidhi!*\n\n' +
-      'I will help you apply for your street vendor loan.\n\n' +
-      'Please enter your *10-digit bank-linked mobile number* 📱',
+    speak: 'Please enter your 10-digit bank-linked mobile number.',
+    text:  '📱 Please enter your *10-digit bank-linked mobile number*.',
   });
 }
 
@@ -117,8 +114,8 @@ async function soloConsentGate(from) {
       '• IFSC code\n\n' +
       'Do you agree?',
     buttons: [
-      { type: 'reply', reply: { id: 'solo_consent_yes', title: 'Agree'    } },
-      { type: 'reply', reply: { id: 'solo_consent_no',  title: 'Disagree' } },
+      { id: 'solo_consent_yes', title: 'Agree' },
+      { id: 'solo_consent_no', title: 'Disagree' },
     ],
     header: 'Data Consent',
   });
@@ -163,8 +160,8 @@ async function soloFetchDB(from) {
       '• Bank: ' + bank + '\n\n' +
       'Is this correct?',
     buttons: [
-      { type: 'reply', reply: { id: 'solo_db_yes', title: 'Yes' } },
-      { type: 'reply', reply: { id: 'solo_db_no',  title: 'No'  } },
+      { id: 'solo_db_yes', title: 'Yes' },
+      { id: 'solo_db_no', title: 'No' },
     ],
     header: 'Your Bank Details',
   });
@@ -240,8 +237,8 @@ export async function soloHandleOVD(from, mediaObject) {
       (dob ? '\n• DOB: ' + dob : '') +
       '\n\nIs this correct?',
     buttons: [
-      { type: 'reply', reply: { id: 'solo_ovd_yes', title: 'Yes' } },
-      { type: 'reply', reply: { id: 'solo_ovd_no',  title: 'No'  } },
+      { id: 'solo_ovd_yes', title: 'Yes' },
+      { id: 'solo_ovd_no', title: 'No' },
     ],
     header: 'Document Details',
   });
@@ -321,8 +318,8 @@ export async function soloHandleQR(from, mediaObject) {
       '• UPI ID: ' + upiId + '\n\n' +
       'Is this correct?',
     buttons: [
-      { type: 'reply', reply: { id: 'solo_qr_yes', title: 'Yes' } },
-      { type: 'reply', reply: { id: 'solo_qr_no',  title: 'No'  } },
+      { id: 'solo_qr_yes', title: 'Yes' },
+      { id: 'solo_qr_no', title: 'No' },
     ],
     header: 'UPI Details',
   });
@@ -426,8 +423,8 @@ async function soloFinancialConsent(from) {
       '📊 *Financial Check*\n\n' +
       'Do you give us permission to check your 36-month transaction history?',
     buttons: [
-      { type: 'reply', reply: { id: 'solo_finance_yes', title: 'Yes' } },
-      { type: 'reply', reply: { id: 'solo_finance_no',  title: 'No'  } },
+      { id: 'solo_finance_yes', title: 'Yes' },
+      { id: 'solo_finance_no', title: 'No' },
     ],
     header: 'Financial Check',
   });
@@ -588,8 +585,8 @@ export async function soloHandleRepaySelect(from, buttonId) {
         '• First payment: ' + firstDate + '\n\n' +
         'Do you confirm?',
       buttons: [
-        { type: 'reply', reply: { id: 'solo_plan_confirm', title: 'Confirm'     } },
-        { type: 'reply', reply: { id: 'solo_plan_change',  title: 'Change plan' } },
+        { id: 'solo_plan_confirm', title: 'Confirm' },
+        { id: 'solo_plan_change', title: 'Change plan' },
       ],
       header: 'Fixed EMI Plan',
     });
@@ -648,8 +645,8 @@ export async function soloHandleMicroRate(from, text) {
       '• First payment: ' + firstDate + '\n\n' +
       'Do you confirm?',
     buttons: [
-      { type: 'reply', reply: { id: 'solo_plan_confirm', title: 'Confirm'     } },
-      { type: 'reply', reply: { id: 'solo_plan_change',  title: 'Change plan' } },
+      { id: 'solo_plan_confirm', title: 'Confirm' },
+      { id: 'solo_plan_change', title: 'Change plan' },
     ],
     header: 'Micro Repayment Plan',
   });
