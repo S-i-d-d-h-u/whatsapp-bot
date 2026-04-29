@@ -1,8 +1,5 @@
 // src/handlers/soloFlow.js — Solo self-avail flow
-// Vendor applies without agent assistance
-// Every message sent as text + audio (TTS) so vendor can listen
-import { sendText, sendButtons, sendImage, sendList } from '../services/whatsappService.js';
-import { sendSpeak, sendSpeakButtons }                from '../utils/speak.js';
+import { sendText, sendButtons, sendImage, sendList, sendAudio } from '../services/whatsappService.js';
 import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
@@ -14,39 +11,67 @@ const MAX_LOAN  = 30000;
 const RATE      = 0.10;
 const TENURE    = 12;
 
-// Helper: send image → audio → text in correct order, no pauses
-async function sendFull(from, imageUrl, speakText, displayText) {
-  if (imageUrl) await sendImage(from, imageUrl, '').catch(() => {});
-  if (speakText) await sendSpeak(from, speakText);
-  if (displayText && displayText !== speakText) await sendText(from, displayText);
+// Strip emojis from text before sending to TTS
+function stripEmojis(text) {
+  return text
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    .replace(/[\u2702-\u27B0]/gu, '')
+    .replace(/\*/g, '')
+    .replace(/_/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+// Core send helper: image (optional) → audio → text. One call, one set of messages.
+async function send(from, { image, speak, text }) {
+  if (image) await sendImage(from, image, '').catch(() => {});
+  if (speak) await sendAudio(from, stripEmojis(speak)).catch(e => console.error('[TTS]', e.message));
+  if (text)  await sendText(from, text);
+}
+
+// For button messages: audio → buttons (no separate text)
+async function sendWithButtons(from, { speak, text, buttons, header }) {
+  const { sendButtons: sb } = await import('../services/whatsappService.js');
+  if (speak) await sendAudio(from, stripEmojis(speak)).catch(e => console.error('[TTS]', e.message));
+  await sb(from, text, buttons, header);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PHASE 0 — Intro
+// ══════════════════════════════════════════════════════════════════════════
+export async function soloStart(from) {
+  setSession(from, STATE.COLLECT_PHONE);
+  updateSessionData(from, { soloFlow: true, dbPath: 'bank', awaitingPhoneEntry: true });
+  await send(from, {
+    speak: 'Welcome to PM SVANidhi! I will help you apply for your street vendor loan. Please enter your 10-digit bank-linked mobile number.',
+    text:  '👋 *Welcome to PM SVANidhi!*\n\nI will help you apply for your street vendor loan.\n\nPlease enter your *10-digit bank-linked mobile number* 📱',
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 // PHASE 1 — Phone & OTP
 // ══════════════════════════════════════════════════════════════════════════
-export async function soloStart(from) {
-  setSession(from, STATE.COLLECT_PHONE);
-  updateSessionData(from, { soloFlow: true, dbPath: 'bank', awaitingPhoneEntry: true });
-  await sendSpeak(from, 'Please enter your 10-digit bank-linked mobile number. 📱');
-}
-
 export async function soloHandlePhone(from, text) {
   const cleaned = text.replace(/\s+/g, '').replace(/^\+91/, '');
   if (!/^\d{10}$/.test(cleaned)) {
-    await sendSpeak(from, 'Please enter a valid 10-digit number.');
+    await send(from, { speak: 'Please enter a valid 10-digit number.', text: '❌ Please enter a valid 10-digit number.' });
     return;
   }
   const otp = String(Math.floor(1000 + Math.random() * 9000));
   updateSessionData(from, { phone: cleaned, otpCode: otp, otpVerified: false });
   setSession(from, STATE.COLLECT_PHONE, { otpSent: true, soloFlow: true });
-  // Only prompt to enter OTP — do not display the OTP value
-  await sendSpeak(from, 'An OTP has been sent to your mobile number. Please enter it here.');
+  await send(from, {
+    speak: 'An OTP has been sent to your mobile number. Please enter it here.',
+    text:  '🔢 An OTP has been sent to your mobile number.\n\nPlease enter it here.',
+  });
 }
 
 export async function soloHandleOtp(from, text) {
   const entered = text.trim();
   if (!/^\d{4}$/.test(entered)) {
-    await sendSpeak(from, 'Please enter the 4-digit OTP sent to your mobile number.');
+    await send(from, { speak: 'Please enter the 4-digit OTP sent to your mobile number.', text: '❌ Please enter the 4-digit OTP sent to your mobile number.' });
     return;
   }
   updateSessionData(from, { otpVerified: true });
@@ -56,21 +81,21 @@ export async function soloHandleOtp(from, text) {
 async function soloConsentGate(from) {
   setSession(from, STATE.CONSENT_GATE);
   updateSessionData(from, { soloFlow: true });
-  await sendSpeakButtons(
-    from,
-    '🔒 *Data Consent*\n\nWe will access: your name, account number (last 4 digits), bank name and IFSC.\n\nDo you agree?',
-    [
-      { id: 'solo_consent_yes', title: 'Agree'    },
-      { id: 'solo_consent_no',  title: 'Disagree' },
+  await sendWithButtons(from, {
+    speak:   'Data Consent. We will access your name, account number last 4 digits, bank name and IFSC. Do you agree?',
+    text:    '🔒 *Data Consent*\n\nWe will access:\n• Your name\n• Account number (last 4 digits)\n• Bank name\n• IFSC code\n\nDo you agree?',
+    buttons: [
+      { type: 'reply', reply: { id: 'solo_consent_yes', title: 'Agree' } },
+      { type: 'reply', reply: { id: 'solo_consent_no',  title: 'Disagree' } },
     ],
-    'Data Consent'
-  );
+    header: 'Data Consent',
+  });
 }
 
 export async function soloHandleConsent(from, buttonId) {
   if (buttonId === 'solo_consent_no') {
     clearSession(from);
-    await sendSpeak(from, 'Application cancelled. Send hi to restart.');
+    await send(from, { speak: 'Application cancelled. Send hi to restart.', text: 'Application cancelled. Send *hi* to restart.' });
     return;
   }
   updateSessionData(from, { consentGiven: true });
@@ -80,33 +105,28 @@ export async function soloHandleConsent(from, buttonId) {
 async function soloFetchDB(from) {
   setSession(from, STATE.SOLO_DB_CONFIRM);
   updateSessionData(from, { soloFlow: true });
-
-  // No audio for processing messages
   await sendText(from, '⏳ Fetching your bank details...');
 
   const last4 = String(Math.floor(1000 + Math.random() * 9000));
   const name  = 'Ramesh Kumar';
   const bank  = 'State Bank of India';
-  updateSessionData(from, {
-    fetchedName: name, fetchedAccount: 'XXXX-' + last4,
-    fetchedBank: bank, fetchSource: 'bank',
-  });
+  updateSessionData(from, { fetchedName: name, fetchedAccount: 'XXXX-' + last4, fetchedBank: bank, fetchSource: 'bank' });
 
-  await sendSpeakButtons(
-    from,
-    '🏦 *Your Bank Details*\n\nName: ' + name + '\nAccount: XXXX-' + last4 + '\nBank: ' + bank + '\n\nIs this correct?',
-    [
-      { id: 'solo_db_yes', title: 'Yes ✅' },
-      { id: 'solo_db_no',  title: 'No ❌'  },
+  await sendWithButtons(from, {
+    speak:   'Your bank details. Name: ' + name + '. Account: XXXX ' + last4 + '. Bank: ' + bank + '. Is this correct?',
+    text:    '🏦 *Your Bank Details*\n\n• Name: ' + name + '\n• Account: XXXX-' + last4 + '\n• Bank: ' + bank + '\n\nIs this correct?',
+    buttons: [
+      { type: 'reply', reply: { id: 'solo_db_yes', title: 'Yes' } },
+      { type: 'reply', reply: { id: 'solo_db_no',  title: 'No'  } },
     ],
-    'Your Bank Details'
-  );
+    header: 'Your Bank Details',
+  });
 }
 
 export async function soloHandleDbConfirm(from, buttonId) {
   if (buttonId === 'solo_db_no') {
     clearSession(from);
-    await sendSpeak(from, 'Please send hi to restart with your correct details.');
+    await send(from, { speak: 'Please send hi to restart with your correct details.', text: 'Please send *hi* to restart with your correct details.' });
     return;
   }
   await soloStartDocuments(from);
@@ -118,23 +138,20 @@ export async function soloHandleDbConfirm(from, buttonId) {
 async function soloStartDocuments(from) {
   setSession(from, STATE.AWAIT_AADHAAR);
   updateSessionData(from, { soloFlow: true });
-
-  const speakText = 'Please send a photo of one of the following identity documents: Aadhaar Card, Voter ID, Driving Licence, Ration Card, or NREGA Job Card.';
-  const displayText =
-    '🪪 *Identity Document Required*\n\n' +
-    'Please send a clear photo of any one of these:\n\n' +
-    '• Aadhaar Card\n' +
-    '• Voter ID (EPIC)\n' +
-    '• Driving Licence\n' +
-    '• Ration Card\n' +
-    '• NREGA Job Card';
-
-  await sendSpeak(from, speakText);
-  await sendText(from, displayText);
+  await send(from, {
+    speak: 'Please send a photo of one of the following identity documents: Aadhaar Card, Voter ID, Driving Licence, Ration Card, or NREGA Job Card.',
+    text:
+      '🪪 *Identity Document Required*\n\n' +
+      'Please send a clear photo of any one of these:\n\n' +
+      '• Aadhaar Card\n' +
+      '• Voter ID (EPIC)\n' +
+      '• Driving Licence\n' +
+      '• Ration Card\n' +
+      '• NREGA Job Card',
+  });
 }
 
 export async function soloHandleOVD(from, mediaObject) {
-  // No audio for processing messages
   await sendText(from, '⏳ Processing your document...');
 
   let ocrResult = null;
@@ -154,28 +171,29 @@ export async function soloHandleOVD(from, mediaObject) {
   else if (ft.includes('nrega') || ft.includes('job card'))  docType = 'nrega';
 
   const docLabels = { aadhaar:'Aadhaar Card', voter:'Voter ID', driving:'Driving Licence', ration:'Ration Card', nrega:'NREGA Job Card' };
-
   updateSessionData(from, {
     soloOvdTemp: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type, docType, docTypeLabel: docLabels[docType], ocrName: nameLine, ocrIdNumber: idNum, ocrDob: dob, ocrRaw: fullText.slice(0,400) }
   });
-
   setSession(from, STATE.SOLO_OVD_CONFIRM);
   updateSessionData(from, { soloFlow: true });
 
-  const msg =
+  const speakMsg = 'Document Details. Name: ' + nameLine + '. ID: ' + idNum + (dob ? '. Date of Birth: ' + dob : '') + '. Is this correct?';
+  const textMsg  =
     '📄 *Document Details*\n\n' +
-    'Name: ' + nameLine + '\n' +
-    'ID: ' + idNum +
-    (dob ? '\nDOB: ' + dob : '') +
+    '• Name: ' + nameLine + '\n' +
+    '• ID: ' + idNum +
+    (dob ? '\n• DOB: ' + dob : '') +
     '\n\nIs this correct?';
 
-  await sendSpeakButtons(from, msg,
-    [
-      { id: 'solo_ovd_yes', title: 'Yes ✅' },
-      { id: 'solo_ovd_no',  title: 'No ❌'  },
+  await sendWithButtons(from, {
+    speak:   speakMsg,
+    text:    textMsg,
+    buttons: [
+      { type: 'reply', reply: { id: 'solo_ovd_yes', title: 'Yes' } },
+      { type: 'reply', reply: { id: 'solo_ovd_no',  title: 'No'  } },
     ],
-    'Document Details'
-  );
+    header: 'Document Details',
+  });
 }
 
 export async function soloHandleOVDConfirm(from, buttonId) {
@@ -191,7 +209,10 @@ export async function soloHandleOVDConfirm(from, buttonId) {
   } else {
     setSession(from, STATE.SOLO_OVD_CORRECT);
     updateSessionData(from, { soloFlow: true });
-    await sendSpeak(from, 'Please enter your correct details in this format:\nName, ID Number, Date of Birth\n\nExample: Ramesh Kumar, 1234-5678-9012, 15-08-1985');
+    await send(from, {
+      speak: 'Please enter your correct details in this format: Name, ID Number, Date of Birth. Example: Ramesh Kumar, 1234-5678-9012, 15-08-1985',
+      text:  '✏️ Please enter your correct details:\n\n_Format: Name, ID Number, Date of Birth_\n\nExample: Ramesh Kumar, 1234-5678-9012, 15-08-1985',
+    });
   }
 }
 
@@ -201,7 +222,7 @@ export async function soloHandleOVDCorrection(from, text) {
   const idNum = parts[1] || '';
   const dob   = parts[2] || '';
   if (!name || !idNum) {
-    await sendSpeak(from, 'Please enter in this format: Name, ID Number, Date of Birth');
+    await send(from, { speak: 'Please enter in this format: Name, ID Number, Date of Birth', text: '❌ Please enter in this format: Name, ID Number, Date of Birth' });
     return;
   }
   const { data } = getSession(from);
@@ -217,33 +238,34 @@ export async function soloHandleOVDCorrection(from, text) {
 async function soloRequestQR(from) {
   setSession(from, STATE.AWAIT_QR);
   updateSessionData(from, { soloFlow: true });
-  await sendSpeak(from, 'Please send a screenshot of your UPI QR Code. 📷');
+  await send(from, {
+    speak: 'Please send a screenshot of your UPI QR Code.',
+    text:  '📷 Please send a screenshot of your *UPI QR Code*.',
+  });
 }
 
 export async function soloHandleQR(from, mediaObject) {
-  // No audio for processing messages
   await sendText(from, '⏳ Processing your QR code...');
 
   let upiId = 'Not detected';
   try {
     const qrResult = await extractQRCodeUPI(mediaObject.id);
-    if (qrResult.success) {
-      upiId = qrResult.upiId;
-    }
+    if (qrResult.success) upiId = qrResult.upiId;
   } catch (e) {}
 
   updateSessionData(from, { soloQrTemp: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type, ocrUpiId: upiId } });
   setSession(from, STATE.SOLO_QR_CONFIRM);
   updateSessionData(from, { soloFlow: true });
 
-  await sendSpeakButtons(from,
-    '💳 *UPI Details*\n\nUPI ID: ' + upiId + '\n\nIs this correct?',
-    [
-      { id: 'solo_qr_yes', title: 'Yes ✅' },
-      { id: 'solo_qr_no',  title: 'No ❌'  },
+  await sendWithButtons(from, {
+    speak:   'UPI Details. UPI ID: ' + upiId + '. Is this correct?',
+    text:    '💳 *UPI Details*\n\n• UPI ID: ' + upiId + '\n\nIs this correct?',
+    buttons: [
+      { type: 'reply', reply: { id: 'solo_qr_yes', title: 'Yes' } },
+      { type: 'reply', reply: { id: 'solo_qr_no',  title: 'No'  } },
     ],
-    'UPI Details'
-  );
+    header: 'UPI Details',
+  });
 }
 
 export async function soloHandleQRConfirm(from, buttonId) {
@@ -259,14 +281,17 @@ export async function soloHandleQRConfirm(from, buttonId) {
   } else {
     setSession(from, STATE.SOLO_QR_CORRECT);
     updateSessionData(from, { soloFlow: true });
-    await sendSpeak(from, 'Please enter your correct UPI ID.\n\nExample: name@okaxis');
+    await send(from, {
+      speak: 'Please enter your correct UPI ID. Example: name at okaxis',
+      text:  '✏️ Please enter your correct UPI ID.\n\n_Example: name@okaxis_',
+    });
   }
 }
 
 export async function soloHandleQRCorrection(from, text) {
   const upiId = text.trim();
   if (!/^[\w.\-]+@[a-z]+$/i.test(upiId)) {
-    await sendSpeak(from, 'Please enter a valid UPI ID.\n\nExample: name@okaxis');
+    await send(from, { speak: 'Please enter a valid UPI ID. Example: name at okaxis', text: '❌ Please enter a valid UPI ID.\n\n_Example: name@okaxis_' });
     return;
   }
   const { data } = getSession(from);
@@ -280,17 +305,19 @@ export async function soloHandleQRCorrection(from, text) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PHASE 3 — Profiling (references + financial consent + eligibility)
+// PHASE 3 — Profiling
 // ══════════════════════════════════════════════════════════════════════════
 async function soloStartProfiling(from) {
   setSession(from, STATE.PROFILING_REFS);
   updateSessionData(from, { soloFlow: true });
-  await sendSpeak(from,
-    'We need two contact details. First, provide a Reference — a neighbour, fellow vendor, or local shopkeeper. Enter their name and mobile number. Example: Suresh Kumar, 9876543210'
-  );
-  await sendText(from,
-    '👥 *Reference Contact*\n\nProvide a neighbour, fellow vendor, or local shopkeeper.\n\nEnter name and mobile number:\n_Example: Suresh Kumar, 9876543210_'
-  );
+  await send(from, {
+    speak: 'We need two contact details. First, provide a Reference — a neighbour, fellow vendor, or local shopkeeper. Enter their name and mobile number. Example: Suresh Kumar, 9876543210',
+    text:
+      '👥 *Reference Contact*\n\n' +
+      'Provide a neighbour, fellow vendor, or local shopkeeper.\n\n' +
+      '_Enter name and mobile number:_\n' +
+      'Example: Suresh Kumar, 9876543210',
+  });
 }
 
 export async function soloHandleRefs(from, text) {
@@ -300,16 +327,20 @@ export async function soloHandleRefs(from, text) {
   const name  = parts.filter(p => !/^\d/.test(p)).join(' ').trim();
 
   if (!name || !phone) {
-    await sendSpeak(from, 'Please provide a name and 10-digit number. Example: Suresh Kumar, 9876543210');
+    await send(from, { speak: 'Please provide a name and 10-digit number. Example: Suresh Kumar, 9876543210', text: '❌ Please provide a name and 10-digit number.\n\nExample: Suresh Kumar, 9876543210' });
     return;
   }
 
   if (!data.ref1Name) {
     updateSessionData(from, { ref1Name: name, ref1Phone: phone.replace(/\D/g,'') });
-    await sendSpeak(from, 'Got it! Now provide your Fallback Contact — a family member or close friend. Example: Meena Devi, 9988776655');
-    await sendText(from,
-      '👨‍👩‍👧 *Fallback Contact*\n\nProvide a family member or close friend.\n\nEnter name and mobile number:\n_Example: Meena Devi, 9988776655_'
-    );
+    await send(from, {
+      speak: 'Got it! Now provide your Fallback Contact — a family member or close friend. Example: Meena Devi, 9988776655',
+      text:
+        '👨‍👩‍👧 *Fallback Contact*\n\n' +
+        'Provide a family member or close friend.\n\n' +
+        '_Enter name and mobile number:_\n' +
+        'Example: Meena Devi, 9988776655',
+    });
   } else {
     updateSessionData(from, { ref2Name: name, ref2Phone: phone.replace(/\D/g,'') });
     await soloFinancialConsent(from);
@@ -319,24 +350,21 @@ export async function soloHandleRefs(from, text) {
 async function soloFinancialConsent(from) {
   setSession(from, STATE.PROFILING_FINANCE);
   updateSessionData(from, { soloFlow: true });
-  await sendSpeakButtons(
-    from,
-    '📊 *Financial Check*\n\nDo you give us permission to check your 36-month transaction history?',
-    [
-      { id: 'solo_finance_yes', title: 'Yes ✅' },
-      { id: 'solo_finance_no',  title: 'No ❌'  },
+  await sendWithButtons(from, {
+    speak:   'Financial Check. Do you give us permission to check your 36-month transaction history?',
+    text:    '📊 *Financial Check*\n\nDo you give us permission to check your 36-month transaction history?',
+    buttons: [
+      { type: 'reply', reply: { id: 'solo_finance_yes', title: 'Yes' } },
+      { type: 'reply', reply: { id: 'solo_finance_no',  title: 'No'  } },
     ],
-    'Financial Check'
-  );
+    header: 'Financial Check',
+  });
 }
 
 export async function soloHandleFinancialConsent(from, buttonId) {
   const doCheck = buttonId === 'solo_finance_yes';
   updateSessionData(from, { financialCheckConsent: doCheck });
-  if (doCheck) {
-    // No audio for processing messages
-    await sendText(from, '⏳ Checking your transaction history...');
-  }
+  if (doCheck) await sendText(from, '⏳ Checking your transaction history...');
   await soloShowEligibility(from, doCheck);
 }
 
@@ -346,18 +374,20 @@ async function soloShowEligibility(from, didCheck) {
     soloFlow: true,
     eligibility: { annualRevenue: didCheck ? 180000 : 150000, tranche: 1, trancheLabel: 'Tranche 1', maxLoan: MAX_LOAN, calculatedAt: new Date().toISOString() },
   });
-  await sendSpeak(from,
-    'Great news! You are eligible for up to Rs.' + MAX_LOAN.toLocaleString('en-IN') + '. How much would you like to borrow? Enter an amount between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') + '.'
-  );
-  await sendText(from,
-    '🎉 *Eligible!*\n\nYou can borrow up to *Rs.' + MAX_LOAN.toLocaleString('en-IN') + '*\n\nEnter the amount you need:\n_Between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') + '_'
-  );
+  await send(from, {
+    speak: 'Great news! You are eligible for up to Rs.' + MAX_LOAN.toLocaleString('en-IN') + '. How much would you like to borrow? Enter an amount between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') + '.',
+    text:
+      '🎉 *You are eligible!*\n\n' +
+      'You can borrow up to *Rs.' + MAX_LOAN.toLocaleString('en-IN') + '*\n\n' +
+      '_Enter the amount you need:_\n' +
+      'Between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN'),
+  });
 }
 
 export async function soloHandleLoanAmount(from, text) {
   const amount = parseInt(text.replace(/[^\d]/g, ''), 10);
   if (!amount || amount < 5000 || amount > MAX_LOAN) {
-    await sendSpeak(from, 'Please enter an amount between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') + '.');
+    await send(from, { speak: 'Please enter an amount between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') + '.', text: '❌ Please enter an amount between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') });
     return;
   }
   updateSessionData(from, { loanAmount: amount });
@@ -365,26 +395,23 @@ export async function soloHandleLoanAmount(from, text) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PHASE 4 — KYC (auto-approved after 10 seconds)
+// PHASE 4 — KYC
 // ══════════════════════════════════════════════════════════════════════════
 async function soloStartKYC(from) {
   setSession(from, STATE.AWAIT_KYC_VIDEO);
   updateSessionData(from, { soloFlow: true });
-
-  const speakText = 'Please record a short video and send it here to complete your KYC. Face the camera and blink twice. Then hold your identity document beside your face.';
-  const displayText =
-    '🎥 *Video KYC*\n\n' +
-    'Record a short video and send it here.\n\n' +
-    '1. Face the camera and blink twice 👁️\n' +
-    '2. Hold your identity document beside your face 🪪';
-
-  if (KYC_IMG) await sendImage(from, KYC_IMG, '').catch(() => {});
-  await sendSpeak(from, speakText);
-  await sendText(from, displayText);
+  await send(from, {
+    image: KYC_IMG || null,
+    speak: 'Video KYC. Please record a short video and send it here. Face the camera and blink twice. Then hold your identity document beside your face.',
+    text:
+      '🎥 *Video KYC*\n\n' +
+      'Record a short video and send it here:\n\n' +
+      '1. Face the camera and blink twice 👁️\n' +
+      '2. Hold your identity document beside your face 🪪',
+  });
 }
 
 export async function soloHandleKYCVideo(from, mediaObject) {
-  // No audio for verifying messages
   await sendText(from, '⏳ Verifying your identity...');
   updateSessionData(from, {
     kyc: { videoMediaId: mediaObject.id, videoMimeType: mediaObject.mime_type, uploadedAt: new Date().toISOString() }
@@ -392,11 +419,9 @@ export async function soloHandleKYCVideo(from, mediaObject) {
   setSession(from, STATE.AWAITING_APPROVAL);
   updateSessionData(from, { soloFlow: true });
 
-  // Auto-approve after 10 seconds
   setTimeout(async () => {
     try {
       if (getSession(from).state !== STATE.AWAITING_APPROVAL) return;
-
       const { data } = getSession(from);
       const loanAmount = data.loanAmount || MAX_LOAN;
       const loanRef    = 'SVAN-' + Date.now().toString().slice(-8);
@@ -409,40 +434,47 @@ export async function soloHandleKYCVideo(from, mediaObject) {
       setSession(from, STATE.REPAYMENT_MENU);
       updateSessionData(from, { soloFlow: true });
 
-      await sendSpeak(from, 'Your identity has been verified! Your loan of Rs.' + loanAmount.toLocaleString('en-IN') + ' has been approved.');
-      await sendText(from, '✅ *Identity Verified!*\n\nYour loan of *Rs.' + loanAmount.toLocaleString('en-IN') + '* has been approved. 🎉');
+      await send(from, {
+        speak: 'Identity verified! Your loan of Rs.' + loanAmount.toLocaleString('en-IN') + ' has been approved.',
+        text:  '✅ *Identity Verified!*\n\nYour loan of *Rs.' + loanAmount.toLocaleString('en-IN') + '* has been approved. 🎉',
+      });
       await soloRepaymentMenu(from);
     } catch (e) { console.error('[Solo KYC auto-approve]', e.message); }
   }, 10000);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PHASE 5 — Repayment (Fixed or Micro, tenure fixed at 12 months)
+// PHASE 5 — Repayment
 // ══════════════════════════════════════════════════════════════════════════
 async function soloRepaymentMenu(from) {
   const { data } = getSession(from);
   const loan     = data.loanAmount || MAX_LOAN;
   const total    = Math.round(loan * (1 + RATE));
   const fixedEmi = Math.ceil(total / TENURE);
+  const firstDate = getFirstEmiDate();
 
   if (REPAY_IMG) await sendImage(from, REPAY_IMG, '').catch(() => {});
 
+  await send(from, {
+    speak: 'Choose your repayment plan. Option 1: Fixed EMI — Rs.' + fixedEmi.toLocaleString('en-IN') + ' per month for 12 months. Option 2: Micro Repayment — variable daily deduction based on your earnings.',
+    text: null,
+  });
+
   await sendList(
     from,
-    '💰 *Choose your repayment plan:*',
+    '💰 *Choose your repayment plan:*\n\nFirst payment due: ' + firstDate,
     'View Plans',
     [{
       title: 'Repayment Options',
       rows: [
-        { id: 'solo_repay_fixed', title: 'Fixed EMI',       description: 'Rs.' + fixedEmi.toLocaleString('en-IN') + ' per month for 12 months' },
-        { id: 'solo_repay_micro', title: 'Micro Repayment', description: 'Variable daily deduction based on earnings' },
+        { id: 'solo_repay_fixed', title: 'Fixed EMI',       description: 'Rs.' + fixedEmi.toLocaleString('en-IN') + '/month for 12 months' },
+        { id: 'solo_repay_micro', title: 'Micro Repayment', description: 'Daily deduction based on earnings' },
       ],
     }],
     'Repayment Setup'
   );
 }
 
-// Fixed EMI — show summary + confirm
 export async function soloHandleRepaySelect(from, buttonId) {
   const { data } = getSession(from);
   const loan  = data.loanAmount || MAX_LOAN;
@@ -454,78 +486,84 @@ export async function soloHandleRepaySelect(from, buttonId) {
     setSession(from, STATE.SOLO_FIXED_CONFIRM);
     updateSessionData(from, { soloFlow: true, soloPlanType: 'fixed', soloPlanEmi: emi });
 
-    const speakText =
-      'Fixed EMI Plan. Your monthly EMI will be Rs.' + emi.toLocaleString('en-IN') + ' for 12 months. Total payable: Rs.' + total.toLocaleString('en-IN') + '. Repayment starts on ' + firstDate + '. Confirm?';
-    const displayText =
-      '📋 *Fixed EMI Plan*\n\n' +
-      '• Monthly EMI: *Rs.' + emi.toLocaleString('en-IN') + '*\n' +
-      '• Duration: 12 months\n' +
-      '• Total payable: Rs.' + total.toLocaleString('en-IN') + '\n' +
-      '• First payment: ' + firstDate + '\n\n' +
-      'Confirm?';
-
-    await sendSpeak(from, speakText);
-    await sendButtons(from, displayText,
-      [
-        { type: 'reply', reply: { id: 'solo_plan_confirm', title: 'Confirm ✅' } },
+    await sendWithButtons(from, {
+      speak:
+        'Fixed EMI Plan. ' +
+        'Monthly EMI: Rs.' + emi.toLocaleString('en-IN') + '. ' +
+        'Duration: 12 months. ' +
+        'Total payable: Rs.' + total.toLocaleString('en-IN') + '. ' +
+        'First payment on ' + firstDate + '. ' +
+        'Do you confirm?',
+      text:
+        '📋 *Fixed EMI Plan*\n\n' +
+        '• Monthly EMI: *Rs.' + emi.toLocaleString('en-IN') + '*\n' +
+        '• Duration: 12 months\n' +
+        '• Total payable: Rs.' + total.toLocaleString('en-IN') + '\n' +
+        '• First payment: ' + firstDate + '\n\n' +
+        'Do you confirm?',
+      buttons: [
+        { type: 'reply', reply: { id: 'solo_plan_confirm', title: 'Confirm' } },
         { type: 'reply', reply: { id: 'solo_plan_change',  title: 'Change plan' } },
-      ]
-    );
+      ],
+      header: 'Fixed EMI Plan',
+    });
 
   } else if (buttonId === 'solo_repay_micro') {
     setSession(from, STATE.SOLO_MICRO_RATE);
     updateSessionData(from, { soloFlow: true, soloPlanType: 'micro' });
-    await sendSpeak(from, 'Micro Repayment Plan. How much can you save per Rs.200 earned? Enter an amount between Rs.10 and Rs.100.');
-    await sendText(from,
-      '📊 *Micro Repayment Plan*\n\nHow much can you save per Rs.200 earned?\n\n_Enter an amount between Rs.10 and Rs.100_'
-    );
+    await send(from, {
+      speak: 'Micro Repayment Plan. How much can you save per Rs.200 earned? Enter an amount between Rs.10 and Rs.100.',
+      text:
+        '📊 *Micro Repayment Plan*\n\n' +
+        'How much can you save per *Rs.200* earned?\n\n' +
+        '_Enter an amount between Rs.10 and Rs.100_',
+    });
   }
 }
 
-// Micro — collect rate then show summary
 export async function soloHandleMicroRate(from, text) {
   const { data } = getSession(from);
-  const rate  = parseInt(text.replace(/[^\d]/g, ''), 10);
+  const rate = parseInt(text.replace(/[^\d]/g, ''), 10);
   if (!rate || rate < 10 || rate > 100) {
-    await sendSpeak(from, 'Please enter an amount between Rs.10 and Rs.100.');
+    await send(from, { speak: 'Please enter an amount between Rs.10 and Rs.100.', text: '❌ Please enter an amount between Rs.10 and Rs.100.' });
     return;
   }
-  const loan     = data.loanAmount || MAX_LOAN;
-  const total    = Math.round(loan * (1 + RATE));
-  const monthEmi = Math.ceil(total / TENURE);
+  const loan      = data.loanAmount || MAX_LOAN;
+  const total     = Math.round(loan * (1 + RATE));
+  const monthEmi  = Math.ceil(total / TENURE);
   const firstDate = getFirstEmiDate();
 
   updateSessionData(from, { soloMicroRate: rate, soloPlanEmi: monthEmi });
   setSession(from, STATE.SOLO_MICRO_CONFIRM);
   updateSessionData(from, { soloFlow: true });
 
-  const speakText =
-    'Micro Repayment Plan. For every Rs.200 you earn, Rs.' + rate + ' will be auto-deducted daily. ' +
-    'Auto debit will run from the 1st to the 20th of every month. After the 20th, deductions stop. ' +
-    'Any remaining amount must be paid manually by the 30th. ' +
-    'Your monthly EMI will be Rs.' + monthEmi.toLocaleString('en-IN') + ' over 12 months. ' +
-    'Repayment starts on ' + firstDate + '. Confirm?';
-
-  const displayText =
-    '📊 *Micro Repayment Plan*\n\n' +
-    '• For every Rs.200 earned → Rs.' + rate + ' auto-deducted 💸\n' +
-    '• Auto debit runs: *1st to 20th* of every month\n' +
-    '• After 20th: deductions stop 🛑\n' +
-    '• Remaining balance due by: *30th of the month*\n' +
-    '• Monthly EMI: *Rs.' + monthEmi.toLocaleString('en-IN') + '* over 12 months\n' +
-    '• First payment: ' + firstDate + '\n\n' +
-    'Confirm?';
-
-  await sendSpeak(from, speakText);
-  await sendButtons(from, displayText,
-    [
-      { type: 'reply', reply: { id: 'solo_plan_confirm', title: 'Confirm ✅' } },
+  await sendWithButtons(from, {
+    speak:
+      'Micro Repayment Plan. ' +
+      'For every Rs.200 you earn, Rs.' + rate + ' will be auto-deducted. ' +
+      'Auto debit runs from the 1st to the 20th of every month. ' +
+      'After the 20th, deductions stop. ' +
+      'Any remaining amount must be paid manually by the 30th. ' +
+      'Monthly EMI: Rs.' + monthEmi.toLocaleString('en-IN') + ' over 12 months. ' +
+      'First payment on ' + firstDate + '. ' +
+      'Do you confirm?',
+    text:
+      '📊 *Micro Repayment Plan*\n\n' +
+      '• Per Rs.200 earned: *Rs.' + rate + ' auto-deducted* 💸\n' +
+      '• Auto debit runs: *1st to 20th* of every month\n' +
+      '• After 20th: deductions stop 🛑\n' +
+      '• Remaining balance due by: *30th of the month*\n' +
+      '• Monthly EMI: *Rs.' + monthEmi.toLocaleString('en-IN') + '* over 12 months\n' +
+      '• First payment: ' + firstDate + '\n\n' +
+      'Do you confirm?',
+    buttons: [
+      { type: 'reply', reply: { id: 'solo_plan_confirm', title: 'Confirm' } },
       { type: 'reply', reply: { id: 'solo_plan_change',  title: 'Change plan' } },
-    ]
-  );
+    ],
+    header: 'Micro Repayment Plan',
+  });
 }
 
-// Confirm or change plan
 export async function soloHandlePlanConfirm(from, buttonId) {
   if (buttonId === 'solo_plan_change') {
     setSession(from, STATE.REPAYMENT_MENU);
@@ -537,7 +575,7 @@ export async function soloHandlePlanConfirm(from, buttonId) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PHASE 6 — Final message
+// PHASE 6 — Finalization
 // ══════════════════════════════════════════════════════════════════════════
 async function soloFinalize(from) {
   const { data } = getSession(from);
@@ -551,31 +589,29 @@ async function soloFinalize(from) {
   const disburseStr = disburse.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
   const planType    = data.soloPlanType || 'fixed';
 
-  const speakText =
-    'Your application is complete! ' +
-    'Loan reference: ' + loanRef + '. ' +
-    'Amount: Rs.' + loanAmount.toLocaleString('en-IN') + '. ' +
-    'Disbursement date: ' + disburseStr + '. ' +
-    'Your first payment of Rs.' + emi.toLocaleString('en-IN') + ' is due on ' + firstDate + '. ' +
-    (planType === 'micro'
-      ? 'Remember, auto debit runs from the 1st to the 20th of every month. Any remaining amount must be paid by the 30th. '
-      : '') +
-    'You will receive a reminder before every payment.';
-
-  const displayText =
-    '🎊 *Application Complete!*\n\n' +
-    '📋 Ref: ' + loanRef + '\n' +
-    '💰 Amount: *Rs.' + loanAmount.toLocaleString('en-IN') + '*\n' +
-    '📅 Disbursement: ' + disburseStr + '\n' +
-    '🗓️ First payment: *' + firstDate + '*\n' +
-    '💸 EMI: Rs.' + emi.toLocaleString('en-IN') + '\n\n' +
-    (planType === 'micro'
-      ? '⚠️ Auto debit: 1st–20th each month\nRemaining balance due by: 30th\n\n'
-      : '') +
-    'You will receive a reminder before every payment. ✅';
-
-  await sendSpeak(from, speakText);
-  await sendText(from, displayText);
+  await send(from, {
+    speak:
+      'Congratulations! Your application is complete. ' +
+      'Loan reference: ' + loanRef + '. ' +
+      'Amount: Rs.' + loanAmount.toLocaleString('en-IN') + '. ' +
+      'Your loan will be disbursed on ' + disburseStr + '. ' +
+      'Your first payment of Rs.' + emi.toLocaleString('en-IN') + ' is due on ' + firstDate + '. ' +
+      (planType === 'micro'
+        ? 'Remember, auto debit runs from the 1st to the 20th of every month. Any remaining amount must be paid by the 30th. '
+        : '') +
+      'You will receive a reminder before every payment.',
+    text:
+      '🎊 *Loan Disbursed!*\n\n' +
+      '• Ref: ' + loanRef + '\n' +
+      '• Amount: *Rs.' + loanAmount.toLocaleString('en-IN') + '*\n' +
+      '• Disbursement: ' + disburseStr + '\n' +
+      '• First payment: *' + firstDate + '*\n' +
+      '• EMI: Rs.' + emi.toLocaleString('en-IN') + '/month\n' +
+      (planType === 'micro'
+        ? '• Auto debit: 1st–20th each month\n• Remaining balance due by: 30th\n'
+        : '') +
+      '\nYou will receive a reminder before every payment. ✅',
+  });
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
