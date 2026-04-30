@@ -79,7 +79,7 @@ export async function routeMessage(req, res) {
 
     console.log(`[${type}] from=${from} state=${state}`);
 
-    if (type === 'image' || type === 'document') {
+    if (type === 'image' || type === 'document' || type === 'video') {
       await handleMediaMessage(from, state, message[type]);
       return;
     }
