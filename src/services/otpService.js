@@ -21,16 +21,19 @@ export async function sendOTPVoice(phoneNumber, otp) {
 
   // Spell out digits with pauses for clearer IVR delivery e.g. "1 2 3 4"
   const spokenOtp = otp.split('').join(' ');
+  const url = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/PM%20SVANidhi%20OTP/${encodeURIComponent(spokenOtp)}`;
+  console.log('[2Factor VOICE url]', url);
 
-  const response = await fetch(
-    `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/PM%20SVANidhi%20OTP/${spokenOtp}`,
-    { method: 'GET' }
-  );
+  const response = await fetch(url, { method: 'GET' });
+  const rawText  = await response.text();
+  console.log('[2Factor VOICE raw]', rawText);
 
-  const data = await response.json();
+  let data;
+  try { data = JSON.parse(rawText); }
+  catch (e) { throw new Error('2Factor returned non-JSON: ' + rawText.slice(0, 100)); }
+
   if (data.Status !== 'Success') throw new Error(data.Details || '2Factor Voice error');
   return true;
-}
 export function verifyOTP(sessionData, enteredOTP) {
   if (!sessionData.otpCode || !sessionData.otpExpiry)
     return { valid: false, reason: 'no_otp' };
