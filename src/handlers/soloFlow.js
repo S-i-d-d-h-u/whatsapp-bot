@@ -77,17 +77,16 @@ export async function soloHandlePhone(from, text) {
     await sendStatus(from, '⏳ Calling your number with OTP...');
 
     // 2Factor generates the OTP and speaks it — returns the OTP value
-    const generatedOtp = await sendOTPVoice(cleaned);
-
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    await sendOTPVoice(cleaned, otp);
     updateSessionData(from, {
       phone:       cleaned,
-      otpCode:     generatedOtp,
+      otpCode:     otp,
       otpExpiry:   Date.now() + 5 * 60 * 1000,
       otpAttempts: 0,
       otpVerified: false,
     });
-
-    console.log('[OTP Voice] called', cleaned, 'otp:', generatedOtp);
+    console.log('[OTP Voice] called', cleaned, 'otp:', otp);
     setSession(from, STATE.AWAIT_OTP, { soloFlow: true });
 
     await sendMsg(from, {
@@ -113,16 +112,17 @@ export async function soloHandleOtp(from, text) {
   const { data } = getSession(from);
 
   // Resend — places a new IVR call
-  if (entered.toLowerCase() === 'resend') {
-    updateSessionData(from, { otpAttempts: 0 });
+ if (entered.toLowerCase() === 'resend') {
     try {
       await sendStatus(from, '⏳ Calling your number again...');
-      const generatedOtp = await sendOTPVoice(data.phone);
+      const otp = String(Math.floor(1000 + Math.random() * 9000));
+      await sendOTPVoice(data.phone, otp);
       updateSessionData(from, {
-        otpCode:   generatedOtp,
-        otpExpiry: Date.now() + 5 * 60 * 1000,
+        otpCode:     otp,
+        otpExpiry:   Date.now() + 5 * 60 * 1000,
+        otpAttempts: 0,
       });
-      console.log('[OTP Voice resend] called', data.phone, 'otp:', generatedOtp);
+      console.log('[OTP Voice resend] called', data.phone, 'otp:', otp);
       await sendMsg(from, {
         speak: 'A new call is being placed to your number with the OTP.',
         text:  '📞 A new OTP call is being placed to *' + data.phone + '*.',
@@ -137,7 +137,6 @@ export async function soloHandleOtp(from, text) {
     }
     return;
   }
-
   if (!/^\d{4}$/.test(entered)) {
     await sendMsg(from, {
       speak: 'Please enter the 4-digit OTP from the call.',

@@ -26,9 +26,10 @@ export async function sendOTP(phoneNumber, otp) {
 
 // IVR Voice Call — used by solo self-avail flow
 // 2Factor auto-generates and speaks the OTP — returns the OTP string so caller can store it
-export async function sendOTPVoice(phoneNumber) {
+// Sends OTP via voice call — caller passes the OTP, 2Factor speaks it
+export async function sendOTPVoice(phoneNumber, otp) {
   const apiKey = process.env.TWOFACTOR_API_KEY;
-  const url    = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/AUTOGEN`;
+  const url    = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/AUTOGEN2/${otp}`;
 
   console.log('[2Factor VOICE url]', url);
 
@@ -41,11 +42,8 @@ export async function sendOTPVoice(phoneNumber) {
   catch (e) { throw new Error('2Factor VOICE returned non-JSON: ' + rawText.slice(0, 100)); }
 
   if (data.Status !== 'Success') throw new Error(data.Details || '2Factor Voice error');
-
-  // data.Details contains the OTP that 2Factor generated and will speak
-  return data.Details;
+  return true;
 }
-
 export function verifyOTP(sessionData, enteredOTP) {
   if (!sessionData.otpCode || !sessionData.otpExpiry)
     return { valid: false, reason: 'no_otp' };
