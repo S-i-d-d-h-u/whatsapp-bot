@@ -4,11 +4,13 @@ export function generateOTP() {
 }
 
 export async function sendOTP(phoneNumber, otp) {
-  const url = 'https://www.fast2sms.com/dev/bulkV2?' + new URLSearchParams({
-    authorization:    process.env.FAST2SMS_API_KEY,
-    variables_values: otp,
-    route:            'otp',
-    numbers:          phoneNumber,   // 10 digits, no +91
+ const url = 'https://www.fast2sms.com/dev/bulkV2?' + new URLSearchParams({
+    authorization: process.env.FAST2SMS_API_KEY,
+    message:       'Your PM SVANidhi OTP is ' + otp + '. Valid for 5 minutes. Do not share with anyone.',
+    language:      'english',
+    route:         'q_json',
+    numbers:       phoneNumber,
+    flash:         '0',
   }).toString();
 
   const response = await fetch(url, {
