@@ -1,7 +1,7 @@
 // phase1_loanCustomization.js — Phase 1 (v5) — minimal messages
 import { sendText, sendButtons } from '../services/whatsappService.js';
 import { setSession, clearSession, updateSessionData, getSession, STATE } from '../utils/sessionManager.js';
-import { generateOTP, sendOTP } from '../services/otpService.js';
+import { generateOTP, sendOTP, verifyOTP } from '../services/otpService.js';
 
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
@@ -57,17 +57,34 @@ export async function sendOtpToVendor(from, phone) {
   }
 }
 
-// Step 3: OTP input
+// Step 3: OTP input — verifies with expiry and attempt limiting
 export async function handleOtpInput(from, text) {
   const { data } = getSession(from);
-  if (text.trim() === data.otpCode) {
-    updateSessionData(from, { otpVerified: true });
-    await handleConsentGate(from);
-  } else {
-    await sendText(from, 'Incorrect OTP. Please try again.');
-  }
-}
+  const result   = verifyOTP(data, text.trim());
 
+  if (result.valid) {
+    updateSessionData(from, { otpVerified: true, otpCode: null, otpExpiry: null, otpAttempts: 0 });
+    await handleConsentGate(from);
+    return;
+  }
+
+  if (result.reason === 'expired') {
+    updateSessionData(from, { otpCode: null, otpExpiry: null });
+    await sendText(from, '⏰ OTP expired. Please ask your agent to resend it.');
+    return;
+  }
+
+  const attempts = (data.otpAttempts || 0) + 1;
+  updateSessionData(from, { otpAttempts: attempts });
+
+  if (attempts >= 3) {
+    updateSessionData(from, { otpCode: null, otpExpiry: null, otpAttempts: 0 });
+    await sendText(from, '❌ Too many incorrect attempts. Please ask your agent to resend the OTP.');
+    return;
+  }
+
+  await sendText(from, '❌ Incorrect OTP. ' + (3 - attempts) + ' attempt(s) remaining.');
+}
 export async function handleUPIInput(from, text) { await handleConsentGate(from); }
 
 // Step 4: Consent — short list of what is accessed + buttons
