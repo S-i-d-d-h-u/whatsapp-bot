@@ -4,7 +4,6 @@ import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
 import { extractQRCodeUPI } from '../services/qrCodeService.js';
-import { extractQRCodeUPI } from '../services/qrCodeService.js';
 import { generateOTP, sendOTPVoice, verifyOTP } from '../services/otpService.js';
 
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
@@ -107,24 +106,7 @@ export async function soloHandlePhone(from, text) {
   }
 }
 
-  try {
-    await sendStatus(from, '⏳ Sending OTP to your number...');
-    await sendOTP(cleaned, otp);
-    setSession(from, STATE.AWAIT_OTP, { soloFlow: true });
-    await sendMsg(from, {
-      speak: 'An OTP has been sent to your mobile number. Please enter the 4-digit OTP here. It is valid for 5 minutes.',
-      text:  '🔢 An OTP has been sent to *' + cleaned + '*.\n\nPlease enter the 4-digit OTP here.\n_Valid for 5 minutes._\n\nType *resend* if you did not receive it.',
-    });
-  } catch (err) {
-    console.error('[OTP send]', err.message);
-    await sendMsg(from, {
-      speak: 'Sorry, we could not send the OTP. Please enter your number again.',
-      text:  '❌ Could not send OTP. Please type your mobile number again to retry.',
-    });
-    setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
-  }
-}
-export async function soloHandleOtp(from, text) {
+  export async function soloHandleOtp(from, text) {
   const entered = text.trim();
   const { data } = getSession(from);
 
@@ -136,18 +118,18 @@ export async function soloHandleOtp(from, text) {
       otpExpiry:   Date.now() + 5 * 60 * 1000,
       otpAttempts: 0,
     });
-    try {
-      await sendStatus(from, '⏳ Resending OTP...');
-      await sendOTP(data.phone, otp);
+   try {
+      await sendStatus(from, '⏳ Calling your number again...');
+      await sendOTPVoice(data.phone, otp);
       await sendMsg(from, {
-        speak: 'A new OTP has been sent to your mobile number.',
-        text:  '🔢 A new OTP has been sent to *' + data.phone + '*.\n\nPlease enter it here.',
+        speak: 'A new call is being placed to your number with the OTP.',
+        text:  '📞 A new OTP call is being placed to *' + data.phone + '*.',
       });
     } catch (err) {
-      console.error('[OTP resend]', err.message);
+      console.error('[OTP Voice resend]', err.message);
       await sendMsg(from, {
-        speak: 'Sorry, could not resend OTP. Please enter your number again.',
-        text:  '❌ Could not resend OTP. Please type your mobile number again.',
+        speak: 'Sorry, could not place the call. Please enter your number again.',
+        text:  '❌ Could not place call. Please type your mobile number again.',
       });
       setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
     }
