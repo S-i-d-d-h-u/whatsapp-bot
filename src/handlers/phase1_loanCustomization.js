@@ -45,15 +45,16 @@ export async function sendOtpToVendor(from, phone) {
     otpExpiry:   Date.now() + 5 * 60 * 1000,
     otpAttempts: 0,
     otpVerified: false,
+    otpSent:     false,
   });
-  setSession(from, STATE.COLLECT_PHONE, { otpSent: true });
 
   try {
-    await sendOTP(cleaned, otp);  // SMS for call agent flow
-    await sendText(from, '🔢 An OTP has been sent to *' + cleaned + '* via SMS.\n\nPlease enter it here.');
+    await sendOTP(cleaned, otp);  // SMS for assisted flow
+    updateSessionData(from, { otpSent: true });
+    await sendText(from, '🔢 An OTP has been sent to *' + cleaned + '* via SMS.\n\nPlease enter the OTP here, or your agent can enter it on their screen.');
   } catch (err) {
     console.error('[OTP SMS assisted]', err.message);
-    await sendText(from, '❌ Could not send OTP. Please ask vendor to re-enter their number.');
+    await sendText(from, '❌ Could not send OTP. Please ask your agent to try again.');
   }
 }
 
