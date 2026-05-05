@@ -29,7 +29,7 @@ export async function sendOTP(phoneNumber, otp) {
 // Sends OTP via voice call — caller passes the OTP, 2Factor speaks it
 export async function sendOTPVoice(phoneNumber, otp) {
   const apiKey = process.env.TWOFACTOR_API_KEY;
-  const url    = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/AUTOGEN2/${otp}`;
+ const url = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/${otp}`;
 
   console.log('[2Factor VOICE url]', url);
 
