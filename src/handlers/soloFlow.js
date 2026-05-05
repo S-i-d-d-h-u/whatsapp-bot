@@ -3,7 +3,7 @@ import { sendText, sendButtons, sendImage, sendList, sendAudio } from '../servic
 import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
-import { extractQRCodeUPI } from '../services/qrCodeService.js';
+import { extractQRCodeUPI }     from '../services/qrCodeService.js';
 import { generateOTP, sendOTPVoice, verifyOTP } from '../services/otpService.js';
 
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
@@ -29,20 +29,19 @@ function forAudio(text) {
 }
 
 // Standard message: IMAGE (optional) → AUDIO → TEXT
-// Every outgoing message in the flow must go through this or sendMsg
 async function sendMsg(from, { image = null, speak, text }) {
   if (image)  await sendImage(from, image, '').catch(() => {});
   if (speak)  await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   if (text)   await sendText(from, text);
 }
 
-// Button message: AUDIO → BUTTONS (button body is the visible text, no extra sendText needed)
+// Button message: AUDIO → BUTTONS
 async function sendMsgButtons(from, { speak, text, buttons, header = '' }) {
   if (speak) await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   await sendButtons(from, text, buttons, header);
 }
 
-// List message: AUDIO → LIST
+// List message: IMAGE → AUDIO → LIST
 async function sendMsgList(from, { image = null, speak, body, buttonLabel, sections, header = '' }) {
   if (image)  await sendImage(from, image, '').catch(() => {});
   if (speak)  await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
@@ -90,14 +89,19 @@ export async function soloHandlePhone(from, text) {
 
   try {
     await sendStatus(from, '⏳ Calling your number with OTP...');
-    await sendOTPVoice(cleaned, otp);  // IVR call for self avail
+    await sendOTPVoice(cleaned, otp);
+    console.log('[OTP Voice] sent to', cleaned, 'otp:', otp);
     setSession(from, STATE.AWAIT_OTP, { soloFlow: true });
     await sendMsg(from, {
       speak: 'You will receive a call with your OTP. Please enter the 4-digit OTP here after the call.',
-      text:  '📞 You will receive a call on *' + cleaned + '* with your OTP.\n\nPlease enter the 4-digit OTP here after the call.\n_Valid for 5 minutes._\n\nType *resend* if you did not receive the call.',
+      text:
+        '📞 You will receive a call on *' + cleaned + '* with your OTP.\n\n' +
+        'Please enter the 4-digit OTP here after the call.\n' +
+        '_Valid for 5 minutes._\n\n' +
+        'Type *resend* if you did not receive the call.',
     });
   } catch (err) {
-    console.error('[OTP Voice]', err.message);
+    console.error('[OTP Voice error]', err.message);
     await sendMsg(from, {
       speak: 'Sorry, we could not place the call. Please enter your number again.',
       text:  '❌ Could not place OTP call. Please type your mobile number again to retry.',
@@ -106,11 +110,11 @@ export async function soloHandlePhone(from, text) {
   }
 }
 
-  export async function soloHandleOtp(from, text) {
+export async function soloHandleOtp(from, text) {
   const entered = text.trim();
   const { data } = getSession(from);
 
-  // Resend OTP
+  // Resend — places a new IVR call
   if (entered.toLowerCase() === 'resend') {
     const otp = generateOTP();
     updateSessionData(from, {
@@ -118,15 +122,16 @@ export async function soloHandlePhone(from, text) {
       otpExpiry:   Date.now() + 5 * 60 * 1000,
       otpAttempts: 0,
     });
-   try {
+    try {
       await sendStatus(from, '⏳ Calling your number again...');
       await sendOTPVoice(data.phone, otp);
+      console.log('[OTP Voice resend] sent to', data.phone, 'otp:', otp);
       await sendMsg(from, {
         speak: 'A new call is being placed to your number with the OTP.',
         text:  '📞 A new OTP call is being placed to *' + data.phone + '*.',
       });
     } catch (err) {
-      console.error('[OTP Voice resend]', err.message);
+      console.error('[OTP Voice resend error]', err.message);
       await sendMsg(from, {
         speak: 'Sorry, could not place the call. Please enter your number again.',
         text:  '❌ Could not place call. Please type your mobile number again.',
@@ -138,8 +143,8 @@ export async function soloHandlePhone(from, text) {
 
   if (!/^\d{4}$/.test(entered)) {
     await sendMsg(from, {
-      speak: 'Please enter the 4-digit OTP sent to your mobile number.',
-      text:  '❌ Please enter the 4-digit OTP.\n\nType *resend* to get a new one.',
+      speak: 'Please enter the 4-digit OTP from the call.',
+      text:  '❌ Please enter the 4-digit OTP from the call.\n\nType *resend* to receive the call again.',
     });
     return;
   }
@@ -179,9 +184,15 @@ export async function soloHandlePhone(from, text) {
   const remaining = 3 - attempts;
   await sendMsg(from, {
     speak: 'Incorrect OTP. You have ' + remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining.',
-    text:  '❌ Incorrect OTP. *' + remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining.*\n\nType *resend* to get a new OTP.',
+    text:
+      '❌ Incorrect OTP. *' + remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining.*\n\n' +
+      'Type *resend* to receive the call again.',
   });
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// PHASE 1b — Data Consent
+// ══════════════════════════════════════════════════════════════════════════
 async function soloConsentGate(from) {
   setSession(from, STATE.CONSENT_GATE);
   updateSessionData(from, { soloFlow: true });
@@ -198,7 +209,7 @@ async function soloConsentGate(from) {
       'Do you agree?',
     buttons: [
       { id: 'solo_consent_yes', title: 'Agree' },
-      { id: 'solo_consent_no', title: 'Disagree' },
+      { id: 'solo_consent_no',  title: 'Disagree' },
     ],
     header: 'Data Consent',
   });
@@ -217,6 +228,9 @@ export async function soloHandleConsent(from, buttonId) {
   await soloFetchDB(from);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// PHASE 1c — Bank Details Fetch
+// ══════════════════════════════════════════════════════════════════════════
 async function soloFetchDB(from) {
   setSession(from, STATE.SOLO_DB_CONFIRM);
   updateSessionData(from, { soloFlow: true });
@@ -226,8 +240,10 @@ async function soloFetchDB(from) {
   const name  = 'Ramesh Kumar';
   const bank  = 'State Bank of India';
   updateSessionData(from, {
-    fetchedName: name, fetchedAccount: 'XXXX-' + last4,
-    fetchedBank: bank, fetchSource: 'bank',
+    fetchedName:    name,
+    fetchedAccount: 'XXXX-' + last4,
+    fetchedBank:    bank,
+    fetchSource:    'bank',
   });
 
   await sendMsgButtons(from, {
@@ -244,7 +260,7 @@ async function soloFetchDB(from) {
       'Is this correct?',
     buttons: [
       { id: 'solo_db_yes', title: 'Yes' },
-      { id: 'solo_db_no', title: 'No' },
+      { id: 'solo_db_no',  title: 'No' },
     ],
     header: 'Your Bank Details',
   });
@@ -269,7 +285,9 @@ async function soloStartDocuments(from) {
   setSession(from, STATE.AWAIT_AADHAAR);
   updateSessionData(from, { soloFlow: true });
   await sendMsg(from, {
-    speak: 'Please send a photo of one of the following identity documents: Aadhaar Card, Voter ID, Driving Licence, Ration Card, or NREGA Job Card.',
+    speak:
+      'Please send a photo of one of the following identity documents: ' +
+      'Aadhaar Card, Voter ID, Driving Licence, Ration Card, or NREGA Job Card.',
     text:
       '🪪 *Identity Document Required*\n\n' +
       'Please send a clear photo of any one of these:\n\n' +
@@ -300,9 +318,25 @@ export async function soloHandleOVD(from, mediaObject) {
   else if (ft.includes('ration'))                            docType = 'ration';
   else if (ft.includes('nrega') || ft.includes('job card'))  docType = 'nrega';
 
-  const docLabels = { aadhaar:'Aadhaar Card', voter:'Voter ID', driving:'Driving Licence', ration:'Ration Card', nrega:'NREGA Job Card' };
+  const docLabels = {
+    aadhaar: 'Aadhaar Card',
+    voter:   'Voter ID',
+    driving: 'Driving Licence',
+    ration:  'Ration Card',
+    nrega:   'NREGA Job Card',
+  };
+
   updateSessionData(from, {
-    soloOvdTemp: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type, docType, docTypeLabel: docLabels[docType], ocrName: nameLine, ocrIdNumber: idNum, ocrDob: dob, ocrRaw: fullText.slice(0,400) }
+    soloOvdTemp: {
+      mediaId:      mediaObject.id,
+      mimeType:     mediaObject.mime_type,
+      docType,
+      docTypeLabel: docLabels[docType],
+      ocrName:      nameLine,
+      ocrIdNumber:  idNum,
+      ocrDob:       dob,
+      ocrRaw:       fullText.slice(0, 400),
+    },
   });
   setSession(from, STATE.SOLO_OVD_CONFIRM);
   updateSessionData(from, { soloFlow: true });
@@ -321,7 +355,7 @@ export async function soloHandleOVD(from, mediaObject) {
       '\n\nIs this correct?',
     buttons: [
       { id: 'solo_ovd_yes', title: 'Yes' },
-      { id: 'solo_ovd_no', title: 'No' },
+      { id: 'solo_ovd_no',  title: 'No' },
     ],
     header: 'Document Details',
   });
@@ -330,10 +364,13 @@ export async function soloHandleOVD(from, mediaObject) {
 export async function soloHandleOVDConfirm(from, buttonId) {
   if (buttonId === 'solo_ovd_yes') {
     const { data } = getSession(from);
-    const temp = data.soloOvdTemp || {};
+    const temp     = data.soloOvdTemp || {};
     const existing = data.docs || {};
     updateSessionData(from, {
-      docs: { ...existing, ovd: { ...temp, status: 'approved', agentApproved: true, receivedAt: new Date().toISOString() } },
+      docs: {
+        ...existing,
+        ovd: { ...temp, status: 'approved', agentApproved: true, receivedAt: new Date().toISOString() },
+      },
       soloOvdTemp: null,
     });
     await soloRequestQR(from);
@@ -341,7 +378,9 @@ export async function soloHandleOVDConfirm(from, buttonId) {
     setSession(from, STATE.SOLO_OVD_CORRECT);
     updateSessionData(from, { soloFlow: true });
     await sendMsg(from, {
-      speak: 'Please enter your correct details in this format: Name, ID Number, Date of Birth. Example: Ramesh Kumar, 1234-5678-9012, 15-08-1985',
+      speak:
+        'Please enter your correct details in this format: Name, ID Number, Date of Birth. ' +
+        'Example: Ramesh Kumar, 1234-5678-9012, 15-08-1985',
       text:
         '✏️ *Enter Correct Details*\n\n' +
         '_Format: Name, ID Number, Date of Birth_\n\n' +
@@ -355,6 +394,7 @@ export async function soloHandleOVDCorrection(from, text) {
   const name  = parts[0] || '';
   const idNum = parts[1] || '';
   const dob   = parts[2] || '';
+
   if (!name || !idNum) {
     await sendMsg(from, {
       speak: 'Please enter in this format: Name, ID Number, Date of Birth.',
@@ -362,11 +402,19 @@ export async function soloHandleOVDCorrection(from, text) {
     });
     return;
   }
+
   const { data } = getSession(from);
-  const temp = data.soloOvdTemp || {};
+  const temp     = data.soloOvdTemp || {};
   const existing = data.docs || {};
   updateSessionData(from, {
-    docs: { ...existing, ovd: { ...temp, ocrName: name, ocrIdNumber: idNum, ocrDob: dob, status: 'approved', agentApproved: true, receivedAt: new Date().toISOString() } },
+    docs: {
+      ...existing,
+      ovd: {
+        ...temp,
+        ocrName: name, ocrIdNumber: idNum, ocrDob: dob,
+        status: 'approved', agentApproved: true, receivedAt: new Date().toISOString(),
+      },
+    },
     soloOvdTemp: null,
   });
   await soloRequestQR(from);
@@ -390,7 +438,13 @@ export async function soloHandleQR(from, mediaObject) {
     if (qrResult.success) upiId = qrResult.upiId;
   } catch (e) {}
 
-  updateSessionData(from, { soloQrTemp: { mediaId: mediaObject.id, mimeType: mediaObject.mime_type, ocrUpiId: upiId } });
+  updateSessionData(from, {
+    soloQrTemp: {
+      mediaId:   mediaObject.id,
+      mimeType:  mediaObject.mime_type,
+      ocrUpiId:  upiId,
+    },
+  });
   setSession(from, STATE.SOLO_QR_CONFIRM);
   updateSessionData(from, { soloFlow: true });
 
@@ -402,7 +456,7 @@ export async function soloHandleQR(from, mediaObject) {
       'Is this correct?',
     buttons: [
       { id: 'solo_qr_yes', title: 'Yes' },
-      { id: 'solo_qr_no', title: 'No' },
+      { id: 'solo_qr_no',  title: 'No' },
     ],
     header: 'UPI Details',
   });
@@ -411,10 +465,13 @@ export async function soloHandleQR(from, mediaObject) {
 export async function soloHandleQRConfirm(from, buttonId) {
   if (buttonId === 'solo_qr_yes') {
     const { data } = getSession(from);
-    const temp = data.soloQrTemp || {};
+    const temp     = data.soloQrTemp || {};
     const existing = data.docs || {};
     updateSessionData(from, {
-      docs: { ...existing, qr: { ...temp, status: 'approved', agentApproved: true, receivedAt: new Date().toISOString() } },
+      docs: {
+        ...existing,
+        qr: { ...temp, status: 'approved', agentApproved: true, receivedAt: new Date().toISOString() },
+      },
       soloQrTemp: null,
     });
     await soloStartProfiling(from);
@@ -437,11 +494,18 @@ export async function soloHandleQRCorrection(from, text) {
     });
     return;
   }
+
   const { data } = getSession(from);
-  const temp = data.soloQrTemp || {};
+  const temp     = data.soloQrTemp || {};
   const existing = data.docs || {};
   updateSessionData(from, {
-    docs: { ...existing, qr: { ...temp, ocrUpiId: upiId, status: 'approved', agentApproved: true, receivedAt: new Date().toISOString() } },
+    docs: {
+      ...existing,
+      qr: {
+        ...temp, ocrUpiId: upiId,
+        status: 'approved', agentApproved: true, receivedAt: new Date().toISOString(),
+      },
+    },
     soloQrTemp: null,
   });
   await soloStartProfiling(from);
@@ -467,9 +531,9 @@ async function soloStartProfiling(from) {
 
 export async function soloHandleRefs(from, text) {
   const { data } = getSession(from);
-  const parts = text.split(/[,\s]+/);
-  const phone = parts.find(p => /^\d{10}$/.test(p.replace(/\D/g, '')));
-  const name  = parts.filter(p => !/^\d/.test(p)).join(' ').trim();
+  const parts    = text.split(/[,\s]+/);
+  const phone    = parts.find(p => /^\d{10}$/.test(p.replace(/\D/g, '')));
+  const name     = parts.filter(p => !/^\d/.test(p)).join(' ').trim();
 
   if (!name || !phone) {
     await sendMsg(from, {
@@ -480,7 +544,7 @@ export async function soloHandleRefs(from, text) {
   }
 
   if (!data.ref1Name) {
-    updateSessionData(from, { ref1Name: name, ref1Phone: phone.replace(/\D/g,'') });
+    updateSessionData(from, { ref1Name: name, ref1Phone: phone.replace(/\D/g, '') });
     await sendMsg(from, {
       speak:
         'Got it. Now provide your Fallback Contact — a family member or close friend. ' +
@@ -492,7 +556,7 @@ export async function soloHandleRefs(from, text) {
         'Example: Meena Devi, 9988776655',
     });
   } else {
-    updateSessionData(from, { ref2Name: name, ref2Phone: phone.replace(/\D/g,'') });
+    updateSessionData(from, { ref2Name: name, ref2Phone: phone.replace(/\D/g, '') });
     await soloFinancialConsent(from);
   }
 }
@@ -507,7 +571,7 @@ async function soloFinancialConsent(from) {
       'Do you give us permission to check your 36-month transaction history?',
     buttons: [
       { id: 'solo_finance_yes', title: 'Yes' },
-      { id: 'solo_finance_no', title: 'No' },
+      { id: 'solo_finance_no',  title: 'No' },
     ],
     header: 'Financial Check',
   });
@@ -526,14 +590,17 @@ async function soloShowEligibility(from, didCheck) {
     soloFlow: true,
     eligibility: {
       annualRevenue: didCheck ? 180000 : 150000,
-      tranche: 1, trancheLabel: 'Tranche 1',
-      maxLoan: MAX_LOAN, calculatedAt: new Date().toISOString(),
+      tranche:       1,
+      trancheLabel:  'Tranche 1',
+      maxLoan:       MAX_LOAN,
+      calculatedAt:  new Date().toISOString(),
     },
   });
   await sendMsg(from, {
     speak:
       'Great news! You are eligible for up to Rs.' + MAX_LOAN.toLocaleString('en-IN') +
-      '. How much would you like to borrow? Enter an amount between Rs.5,000 and Rs.' + MAX_LOAN.toLocaleString('en-IN') + '.',
+      '. How much would you like to borrow? Enter an amount between Rs.5,000 and Rs.' +
+      MAX_LOAN.toLocaleString('en-IN') + '.',
     text:
       '🎉 *You are eligible!*\n\n' +
       'You can borrow up to *Rs.' + MAX_LOAN.toLocaleString('en-IN') + '*\n\n' +
@@ -578,7 +645,11 @@ async function soloStartKYC(from) {
 export async function soloHandleKYCVideo(from, mediaObject) {
   await sendStatus(from, '⏳ Verifying your identity...');
   updateSessionData(from, {
-    kyc: { videoMediaId: mediaObject.id, videoMimeType: mediaObject.mime_type, uploadedAt: new Date().toISOString() }
+    kyc: {
+      videoMediaId:   mediaObject.id,
+      videoMimeType:  mediaObject.mime_type,
+      uploadedAt:     new Date().toISOString(),
+    },
   });
   setSession(from, STATE.AWAITING_APPROVAL);
   updateSessionData(from, { soloFlow: true });
@@ -586,14 +657,19 @@ export async function soloHandleKYCVideo(from, mediaObject) {
   setTimeout(async () => {
     try {
       if (getSession(from).state !== STATE.AWAITING_APPROVAL) return;
-      const { data } = getSession(from);
+      const { data }   = getSession(from);
       const loanAmount = data.loanAmount || MAX_LOAN;
       const loanRef    = 'SVAN-' + Date.now().toString().slice(-8);
       const disburse   = getNextWorkingDay();
 
       updateSessionData(from, {
         kyc: { ...data.kyc, agentApproved: true, approvedAt: new Date().toISOString() },
-        approval: { approved: true, loanRef, approvedAt: new Date().toISOString(), disburseDate: disburse.toISOString() },
+        approval: {
+          approved:    true,
+          loanRef,
+          approvedAt:  new Date().toISOString(),
+          disburseDate: disburse.toISOString(),
+        },
       });
       setSession(from, STATE.REPAYMENT_MENU);
       updateSessionData(from, { soloFlow: true });
@@ -613,7 +689,7 @@ export async function soloHandleKYCVideo(from, mediaObject) {
 // PHASE 5 — Repayment
 // ══════════════════════════════════════════════════════════════════════════
 async function soloRepaymentMenu(from) {
-  const { data } = getSession(from);
+  const { data }  = getSession(from);
   const loan      = data.loanAmount || MAX_LOAN;
   const total     = Math.round(loan * (1 + RATE));
   const fixedEmi  = Math.ceil(total / TENURE);
@@ -633,8 +709,16 @@ async function soloRepaymentMenu(from) {
     sections: [{
       title: 'Repayment Options',
       rows: [
-        { id: 'solo_repay_fixed', title: 'Fixed EMI',       description: 'Rs.' + fixedEmi.toLocaleString('en-IN') + '/month for 12 months' },
-        { id: 'solo_repay_micro', title: 'Micro Repayment', description: 'Daily deduction based on earnings' },
+        {
+          id:          'solo_repay_fixed',
+          title:       'Fixed EMI',
+          description: 'Rs.' + fixedEmi.toLocaleString('en-IN') + '/month for 12 months',
+        },
+        {
+          id:          'solo_repay_micro',
+          title:       'Micro Repayment',
+          description: 'Daily deduction based on earnings',
+        },
       ],
     }],
     header: 'Repayment Setup',
@@ -669,7 +753,7 @@ export async function soloHandleRepaySelect(from, buttonId) {
         'Do you confirm?',
       buttons: [
         { id: 'solo_plan_confirm', title: 'Confirm' },
-        { id: 'solo_plan_change', title: 'Change plan' },
+        { id: 'solo_plan_change',  title: 'Change plan' },
       ],
       header: 'Fixed EMI Plan',
     });
@@ -690,8 +774,8 @@ export async function soloHandleRepaySelect(from, buttonId) {
 }
 
 export async function soloHandleMicroRate(from, text) {
-  const { data } = getSession(from);
-  const rate = parseInt(text.replace(/[^\d]/g, ''), 10);
+  const { data }  = getSession(from);
+  const rate      = parseInt(text.replace(/[^\d]/g, ''), 10);
   if (!rate || rate < 10 || rate > 100) {
     await sendMsg(from, {
       speak: 'Please enter an amount between Rs.10 and Rs.100.',
@@ -699,6 +783,7 @@ export async function soloHandleMicroRate(from, text) {
     });
     return;
   }
+
   const loan      = data.loanAmount || MAX_LOAN;
   const total     = Math.round(loan * (1 + RATE));
   const monthEmi  = Math.ceil(total / TENURE);
@@ -729,7 +814,7 @@ export async function soloHandleMicroRate(from, text) {
       'Do you confirm?',
     buttons: [
       { id: 'solo_plan_confirm', title: 'Confirm' },
-      { id: 'solo_plan_change', title: 'Change plan' },
+      { id: 'solo_plan_change',  title: 'Change plan' },
     ],
     header: 'Micro Repayment Plan',
   });
@@ -754,10 +839,12 @@ async function soloFinalize(from) {
 
   const loanAmount  = data.loanAmount || MAX_LOAN;
   const loanRef     = data.approval?.loanRef || 'SVAN-' + Date.now().toString().slice(-8);
-  const disburse    = data.approval?.disburseDate ? new Date(data.approval.disburseDate) : getNextWorkingDay();
+  const disburse    = data.approval?.disburseDate
+    ? new Date(data.approval.disburseDate)
+    : getNextWorkingDay();
   const emi         = data.soloPlanEmi || Math.ceil(Math.round(loanAmount * 1.10) / TENURE);
   const firstDate   = getFirstEmiDate();
-  const disburseStr = disburse.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+  const disburseStr = disburse.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   const planType    = data.soloPlanType || 'fixed';
 
   await sendMsg(from, {
@@ -797,5 +884,5 @@ function getFirstEmiDate() {
   const d = new Date();
   d.setMonth(d.getMonth() + 1);
   d.setDate(1);
-  return d.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
