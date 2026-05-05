@@ -4,7 +4,7 @@ import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
 import { extractQRCodeUPI }     from '../services/qrCodeService.js';
-import { generateOTP, sendOTPVoice, verifyOTP } from '../services/otpService.js';
+import { sendOTPVoice, verifyOTP } from '../services/otpService.js';
 
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
 const KYC_IMG   = process.env.KYC_IMG_URL   || '';
@@ -14,7 +14,6 @@ const TENURE    = 12;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-// Remove emojis and markdown before passing to TTS
 function forAudio(text) {
   return text
     .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
@@ -28,27 +27,23 @@ function forAudio(text) {
     .trim();
 }
 
-// Standard message: IMAGE (optional) → AUDIO → TEXT
 async function sendMsg(from, { image = null, speak, text }) {
   if (image)  await sendImage(from, image, '').catch(() => {});
   if (speak)  await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   if (text)   await sendText(from, text);
 }
 
-// Button message: AUDIO → BUTTONS
 async function sendMsgButtons(from, { speak, text, buttons, header = '' }) {
   if (speak) await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   await sendButtons(from, text, buttons, header);
 }
 
-// List message: IMAGE → AUDIO → LIST
 async function sendMsgList(from, { image = null, speak, body, buttonLabel, sections, header = '' }) {
   if (image)  await sendImage(from, image, '').catch(() => {});
   if (speak)  await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   await sendList(from, body, buttonLabel, sections, header);
 }
 
-// Processing/verifying messages — text only, no audio (intentional)
 async function sendStatus(from, text) {
   await sendText(from, text);
 }
@@ -78,20 +73,23 @@ export async function soloHandlePhone(from, text) {
     return;
   }
 
-  const otp = generateOTP();
-  updateSessionData(from, {
-    phone:       cleaned,
-    otpCode:     otp,
-    otpExpiry:   Date.now() + 5 * 60 * 1000,
-    otpAttempts: 0,
-    otpVerified: false,
-  });
-
   try {
     await sendStatus(from, '⏳ Calling your number with OTP...');
-    await sendOTPVoice(cleaned, otp);
-    console.log('[OTP Voice] sent to', cleaned, 'otp:', otp);
+
+    // 2Factor generates the OTP and speaks it — returns the OTP value
+    const generatedOtp = await sendOTPVoice(cleaned);
+
+    updateSessionData(from, {
+      phone:       cleaned,
+      otpCode:     generatedOtp,
+      otpExpiry:   Date.now() + 5 * 60 * 1000,
+      otpAttempts: 0,
+      otpVerified: false,
+    });
+
+    console.log('[OTP Voice] called', cleaned, 'otp:', generatedOtp);
     setSession(from, STATE.AWAIT_OTP, { soloFlow: true });
+
     await sendMsg(from, {
       speak: 'You will receive a call with your OTP. Please enter the 4-digit OTP here after the call.',
       text:
@@ -111,21 +109,20 @@ export async function soloHandlePhone(from, text) {
 }
 
 export async function soloHandleOtp(from, text) {
-  const entered = text.trim();
+  const entered  = text.trim();
   const { data } = getSession(from);
 
   // Resend — places a new IVR call
   if (entered.toLowerCase() === 'resend') {
-    const otp = generateOTP();
-    updateSessionData(from, {
-      otpCode:     otp,
-      otpExpiry:   Date.now() + 5 * 60 * 1000,
-      otpAttempts: 0,
-    });
+    updateSessionData(from, { otpAttempts: 0 });
     try {
       await sendStatus(from, '⏳ Calling your number again...');
-      await sendOTPVoice(data.phone, otp);
-      console.log('[OTP Voice resend] sent to', data.phone, 'otp:', otp);
+      const generatedOtp = await sendOTPVoice(data.phone);
+      updateSessionData(from, {
+        otpCode:   generatedOtp,
+        otpExpiry: Date.now() + 5 * 60 * 1000,
+      });
+      console.log('[OTP Voice resend] called', data.phone, 'otp:', generatedOtp);
       await sendMsg(from, {
         speak: 'A new call is being placed to your number with the OTP.',
         text:  '📞 A new OTP call is being placed to *' + data.phone + '*.',
@@ -440,9 +437,9 @@ export async function soloHandleQR(from, mediaObject) {
 
   updateSessionData(from, {
     soloQrTemp: {
-      mediaId:   mediaObject.id,
-      mimeType:  mediaObject.mime_type,
-      ocrUpiId:  upiId,
+      mediaId:  mediaObject.id,
+      mimeType: mediaObject.mime_type,
+      ocrUpiId: upiId,
     },
   });
   setSession(from, STATE.SOLO_QR_CONFIRM);
@@ -646,9 +643,9 @@ export async function soloHandleKYCVideo(from, mediaObject) {
   await sendStatus(from, '⏳ Verifying your identity...');
   updateSessionData(from, {
     kyc: {
-      videoMediaId:   mediaObject.id,
-      videoMimeType:  mediaObject.mime_type,
-      uploadedAt:     new Date().toISOString(),
+      videoMediaId:  mediaObject.id,
+      videoMimeType: mediaObject.mime_type,
+      uploadedAt:    new Date().toISOString(),
     },
   });
   setSession(from, STATE.AWAITING_APPROVAL);
@@ -665,9 +662,9 @@ export async function soloHandleKYCVideo(from, mediaObject) {
       updateSessionData(from, {
         kyc: { ...data.kyc, agentApproved: true, approvedAt: new Date().toISOString() },
         approval: {
-          approved:    true,
+          approved:     true,
           loanRef,
-          approvedAt:  new Date().toISOString(),
+          approvedAt:   new Date().toISOString(),
           disburseDate: disburse.toISOString(),
         },
       });

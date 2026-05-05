@@ -5,9 +5,12 @@ export function generateOTP() {
 }
 
 // SMS — used by call agent / assisted flow
+// Caller passes the OTP to send
 export async function sendOTP(phoneNumber, otp) {
   const apiKey = process.env.TWOFACTOR_API_KEY;
   const url    = `https://2factor.in/API/V1/${apiKey}/SMS/${phoneNumber}/${otp}/PM%20SVANidhi%20OTP`;
+
+  console.log('[2Factor SMS url]', url);
 
   const response = await fetch(url, { method: 'GET' });
   const rawText  = await response.text();
@@ -22,10 +25,10 @@ export async function sendOTP(phoneNumber, otp) {
 }
 
 // IVR Voice Call — used by solo self-avail flow
-export async function sendOTPVoice(phoneNumber, otp) {
-  const apiKey    = process.env.TWOFACTOR_API_KEY;
-  const spokenOtp = otp.split('').join(' ');
-  const url       = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/PM%20SVANidhi%20OTP/${encodeURIComponent(spokenOtp)}`;
+// 2Factor auto-generates and speaks the OTP — returns the OTP string so caller can store it
+export async function sendOTPVoice(phoneNumber) {
+  const apiKey = process.env.TWOFACTOR_API_KEY;
+  const url    = `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/AUTOGEN`;
 
   console.log('[2Factor VOICE url]', url);
 
@@ -38,7 +41,9 @@ export async function sendOTPVoice(phoneNumber, otp) {
   catch (e) { throw new Error('2Factor VOICE returned non-JSON: ' + rawText.slice(0, 100)); }
 
   if (data.Status !== 'Success') throw new Error(data.Details || '2Factor Voice error');
-  return true;
+
+  // data.Details contains the OTP that 2Factor generated and will speak
+  return data.Details;
 }
 
 export function verifyOTP(sessionData, enteredOTP) {
