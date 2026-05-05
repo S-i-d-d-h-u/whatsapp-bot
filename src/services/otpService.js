@@ -4,25 +4,17 @@ export function generateOTP() {
 }
 
 export async function sendOTP(phoneNumber, otp) {
- const url = 'https://www.fast2sms.com/dev/bulkV2?' + new URLSearchParams({
-    authorization: process.env.FAST2SMS_API_KEY,
-    message:       'Your PM SVANidhi OTP is ' + otp + '. Valid for 5 minutes. Do not share with anyone.',
-    language:      'english',
-    route:         'q_json',
-    numbers:       phoneNumber,
-    flash:         '0',
-  }).toString();
+  const apiKey = process.env.TWOFACTOR_API_KEY;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { 'cache-control': 'no-cache' },
-  });
+  const response = await fetch(
+    `https://2factor.in/API/V1/${apiKey}/SMS/${phoneNumber}/${otp}/PM%20SVANidhi%20OTP`,
+    { method: 'GET' }
+  );
 
   const data = await response.json();
-  if (!data.return) throw new Error(data.message || 'Fast2SMS error');
+  if (data.Status !== 'Success') throw new Error(data.Details || '2Factor error');
   return true;
 }
-
 export function verifyOTP(sessionData, enteredOTP) {
   if (!sessionData.otpCode || !sessionData.otpExpiry)
     return { valid: false, reason: 'no_otp' };
