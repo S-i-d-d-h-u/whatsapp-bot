@@ -4,7 +4,7 @@ import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
 import { extractQRCodeUPI } from '../services/qrCodeService.js';
-import { generateOTP, sendOTP, verifyOTP } from '../services/otpService.js';
+import { generateOTP, sendOTPVoice, verifyOTP } from '../services/otpService.js';import { generateOTP, sendOTP, verifyOTP } from '../services/otpService.js';
 
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
 const KYC_IMG   = process.env.KYC_IMG_URL   || '';
@@ -83,10 +83,28 @@ export async function soloHandlePhone(from, text) {
   updateSessionData(from, {
     phone:       cleaned,
     otpCode:     otp,
-    otpExpiry:   Date.now() + 5 * 60 * 1000,  // 5 minutes
+    otpExpiry:   Date.now() + 5 * 60 * 1000,
     otpAttempts: 0,
     otpVerified: false,
   });
+
+  try {
+    await sendStatus(from, '⏳ Calling your number with OTP...');
+    await sendOTPVoice(cleaned, otp);  // IVR call for self avail
+    setSession(from, STATE.AWAIT_OTP, { soloFlow: true });
+    await sendMsg(from, {
+      speak: 'You will receive a call with your OTP. Please enter the 4-digit OTP here after the call.',
+      text:  '📞 You will receive a call on *' + cleaned + '* with your OTP.\n\nPlease enter the 4-digit OTP here after the call.\n_Valid for 5 minutes._\n\nType *resend* if you did not receive the call.',
+    });
+  } catch (err) {
+    console.error('[OTP Voice]', err.message);
+    await sendMsg(from, {
+      speak: 'Sorry, we could not place the call. Please enter your number again.',
+      text:  '❌ Could not place OTP call. Please type your mobile number again to retry.',
+    });
+    setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
+  }
+}
 
   try {
     await sendStatus(from, '⏳ Sending OTP to your number...');

@@ -15,6 +15,22 @@ export async function sendOTP(phoneNumber, otp) {
   if (data.Status !== 'Success') throw new Error(data.Details || '2Factor error');
   return true;
 }
+
+export async function sendOTPVoice(phoneNumber, otp) {
+  const apiKey = process.env.TWOFACTOR_API_KEY;
+
+  // Spell out digits with pauses for clearer IVR delivery e.g. "1 2 3 4"
+  const spokenOtp = otp.split('').join(' ');
+
+  const response = await fetch(
+    `https://2factor.in/API/V1/${apiKey}/VOICE/${phoneNumber}/PM%20SVANidhi%20OTP/${spokenOtp}`,
+    { method: 'GET' }
+  );
+
+  const data = await response.json();
+  if (data.Status !== 'Success') throw new Error(data.Details || '2Factor Voice error');
+  return true;
+}
 export function verifyOTP(sessionData, enteredOTP) {
   if (!sessionData.otpCode || !sessionData.otpExpiry)
     return { valid: false, reason: 'no_otp' };

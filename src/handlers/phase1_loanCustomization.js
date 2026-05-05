@@ -1,6 +1,7 @@
 // phase1_loanCustomization.js — Phase 1 (v5) — minimal messages
 import { sendText, sendButtons } from '../services/whatsappService.js';
 import { setSession, clearSession, updateSessionData, getSession, STATE } from '../utils/sessionManager.js';
+import { generateOTP, sendOTP } from '../services/otpService.js';
 
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
@@ -25,12 +26,12 @@ export async function handlePhoneInput(from, text) {
   updateSessionData(from, { phone: cleaned, awaitingPhoneEntry: false });
   // OTP will be sent when agent clicks "Send OTP" on dashboard
   // Store OTP now so agent can send it
-  const otp = String(Math.floor(1000 + Math.random() * 9000));
-  updateSessionData(from, { otpCode: otp, otpVerified: false, otpSent: false });
+const otp = generateOTP();
+  updateSessionData(from, { otpCode: otp, otpExpiry: Date.now() + 5 * 60 * 1000, otpAttempts: 0, otpVerified: false, otpSent: false });
   setSession(from, STATE.COLLECT_PHONE, { otpReady: true });
 }
 
-// Called by agent action 'submit_phone' — generates OTP and sends it
+// Called by agent action 'submit_phone' — sends OTP via SMS (call agent flow)
 export async function sendOtpToVendor(from, phone) {
   const cleaned = phone.replace(/\s+/g, '').replace(/^\+91/, '');
   if (!/^\d{10}$/.test(cleaned)) {
@@ -38,11 +39,22 @@ export async function sendOtpToVendor(from, phone) {
     return;
   }
   updateSessionData(from, { phone: cleaned });
-  const otp = String(Math.floor(1000 + Math.random() * 9000));
-  updateSessionData(from, { otpCode: otp, otpVerified: false });
+  const otp = generateOTP();
+  updateSessionData(from, {
+    otpCode:     otp,
+    otpExpiry:   Date.now() + 5 * 60 * 1000,
+    otpAttempts: 0,
+    otpVerified: false,
+  });
   setSession(from, STATE.COLLECT_PHONE, { otpSent: true });
-  // Minimal OTP message
-  await sendText(from, 'Your OTP is ' + otp + '.');
+
+  try {
+    await sendOTP(cleaned, otp);  // SMS for call agent flow
+    await sendText(from, '🔢 An OTP has been sent to *' + cleaned + '* via SMS.\n\nPlease enter it here.');
+  } catch (err) {
+    console.error('[OTP SMS assisted]', err.message);
+    await sendText(from, '❌ Could not send OTP. Please ask vendor to re-enter their number.');
+  }
 }
 
 // Step 3: OTP input
