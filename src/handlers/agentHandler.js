@@ -28,7 +28,9 @@ export async function routeAgentAction(vendorPhone, action, value) {
       await startOnboarding(from);
       break;
     case 'begin_application':
-      // Notify vendor an agent has joined
+      // Clear soloFlow flag so assisted flow routes correctly — never uses voice OTP
+      { const { updateSessionData: upd } = await import('../utils/sessionManager.js');
+        upd(from, { soloFlow: false }); }
       await sendText(from, 'An agent has joined to assist you with your PM SVANidhi application. They will guide you through each step.');
       await handleCollectPhone(from);
       break;
