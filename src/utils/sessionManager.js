@@ -50,8 +50,9 @@ export const STATE = {
   SOLO_DB_CONFIRM:    'SOLO_DB_CONFIRM',
   SOLO_MICRO_RATE:    'SOLO_MICRO_RATE',
   SOLO_MICRO_CONFIRM: 'SOLO_MICRO_CONFIRM',
-  SOLO_FIXED_CONFIRM: 'SOLO_FIXED_CONFIRM',
-};
+SOLO_FIXED_CONFIRM: 'SOLO_FIXED_CONFIRM',
+  // OTP
+  AWAIT_OTP:          'AWAIT_OTP',};
 
 export function getSession(userId) {
   const s = sessions.get(userId);

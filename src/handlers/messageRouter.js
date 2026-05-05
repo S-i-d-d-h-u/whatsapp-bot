@@ -115,11 +115,9 @@ async function handleTextMessage(from, state, text) {
 
   switch (state) {
     // Phase 1 — text input states
-    case STATE.COLLECT_PHONE: {
+   case STATE.COLLECT_PHONE: {
       const { data } = getSession(from);
-      if (data.soloFlow && data.otpSent && !data.otpVerified) {
-        await soloHandleOtp(from, text);
-      } else if (data.soloFlow && !data.otpSent) {
+      if (data.soloFlow) {
         await soloHandlePhone(from, text);
       } else if (data.otpSent && !data.otpVerified) {
         if (text.toLowerCase() === 'resend') {
@@ -127,14 +125,18 @@ async function handleTextMessage(from, state, text) {
         } else {
           await handleOtpInput(from, text);
         }
-      } else if (data.awaitingPhoneEntry || data.dbPath) {
-        await handlePhoneInput(from, text);
       } else {
         await handlePhoneInput(from, text);
       }
       break;
     }
-
+ case STATE.AWAIT_OTP: {
+      const { data: otpData } = getSession(from);
+      if (otpData.soloFlow) {
+        await soloHandleOtp(from, text);
+      }
+      break;
+    }
     case STATE.COLLECT_UPI:
       await handleUPIInput(from, text);
       break;

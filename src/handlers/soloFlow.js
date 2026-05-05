@@ -4,6 +4,7 @@ import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
 import { extractQRCodeUPI } from '../services/qrCodeService.js';
+import { generateOTP, sendOTP, verifyOTP } from '../services/otpService.js';
 
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
 const KYC_IMG   = process.env.KYC_IMG_URL   || '';
@@ -70,35 +71,116 @@ export async function soloStart(from) {
 // ══════════════════════════════════════════════════════════════════════════
 export async function soloHandlePhone(from, text) {
   const cleaned = text.replace(/\s+/g, '').replace(/^\+91/, '');
-  if (!/^\d{10}$/.test(cleaned)) {
+  if (!/^[6-9]\d{9}$/.test(cleaned)) {
     await sendMsg(from, {
       speak: 'Please enter a valid 10-digit mobile number.',
       text:  '❌ Please enter a valid 10-digit mobile number.',
     });
     return;
   }
-  const otp = String(Math.floor(1000 + Math.random() * 9000));
-  updateSessionData(from, { phone: cleaned, otpCode: otp, otpVerified: false });
-  setSession(from, STATE.COLLECT_PHONE, { otpSent: true, soloFlow: true });
-  await sendMsg(from, {
-    speak: 'An OTP has been sent to your mobile number. Please enter it here.',
-    text:  '🔢 An OTP has been sent to your mobile number.\n\nPlease enter it here.',
-  });
-}
 
+  const otp = generateOTP();
+  updateSessionData(from, {
+    phone:       cleaned,
+    otpCode:     otp,
+    otpExpiry:   Date.now() + 5 * 60 * 1000,  // 5 minutes
+    otpAttempts: 0,
+    otpVerified: false,
+  });
+
+  try {
+    await sendStatus(from, '⏳ Sending OTP to your number...');
+    await sendOTP(cleaned, otp);
+    setSession(from, STATE.AWAIT_OTP, { soloFlow: true });
+    await sendMsg(from, {
+      speak: 'An OTP has been sent to your mobile number. Please enter the 4-digit OTP here. It is valid for 5 minutes.',
+      text:  '🔢 An OTP has been sent to *' + cleaned + '*.\n\nPlease enter the 4-digit OTP here.\n_Valid for 5 minutes._\n\nType *resend* if you did not receive it.',
+    });
+  } catch (err) {
+    console.error('[OTP send]', err.message);
+    await sendMsg(from, {
+      speak: 'Sorry, we could not send the OTP. Please enter your number again.',
+      text:  '❌ Could not send OTP. Please type your mobile number again to retry.',
+    });
+    setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
+  }
+}
 export async function soloHandleOtp(from, text) {
   const entered = text.trim();
+  const { data } = getSession(from);
+
+  // Resend OTP
+  if (entered.toLowerCase() === 'resend') {
+    const otp = generateOTP();
+    updateSessionData(from, {
+      otpCode:     otp,
+      otpExpiry:   Date.now() + 5 * 60 * 1000,
+      otpAttempts: 0,
+    });
+    try {
+      await sendStatus(from, '⏳ Resending OTP...');
+      await sendOTP(data.phone, otp);
+      await sendMsg(from, {
+        speak: 'A new OTP has been sent to your mobile number.',
+        text:  '🔢 A new OTP has been sent to *' + data.phone + '*.\n\nPlease enter it here.',
+      });
+    } catch (err) {
+      console.error('[OTP resend]', err.message);
+      await sendMsg(from, {
+        speak: 'Sorry, could not resend OTP. Please enter your number again.',
+        text:  '❌ Could not resend OTP. Please type your mobile number again.',
+      });
+      setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
+    }
+    return;
+  }
+
   if (!/^\d{4}$/.test(entered)) {
     await sendMsg(from, {
       speak: 'Please enter the 4-digit OTP sent to your mobile number.',
-      text:  '❌ Please enter the 4-digit OTP sent to your mobile number.',
+      text:  '❌ Please enter the 4-digit OTP.\n\nType *resend* to get a new one.',
     });
     return;
   }
-  updateSessionData(from, { otpVerified: true });
-  await soloConsentGate(from);
-}
 
+  const result = verifyOTP(data, entered);
+
+  if (result.valid) {
+    updateSessionData(from, { otpVerified: true, otpCode: null, otpExpiry: null, otpAttempts: 0 });
+    await soloConsentGate(from);
+    return;
+  }
+
+  if (result.reason === 'expired') {
+    updateSessionData(from, { otpCode: null, otpExpiry: null });
+    setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
+    await sendMsg(from, {
+      speak: 'Your OTP has expired. Please enter your mobile number again.',
+      text:  '⏰ OTP expired. Please enter your mobile number again to get a new one.',
+    });
+    return;
+  }
+
+  // Wrong OTP
+  const attempts = (data.otpAttempts || 0) + 1;
+  updateSessionData(from, { otpAttempts: attempts });
+
+  if (attempts >= 3) {
+    updateSessionData(from, { otpCode: null, otpExpiry: null, otpAttempts: 0 });
+    setSession(from, STATE.COLLECT_PHONE, { soloFlow: true });
+    await sendMsg(from, {
+      speak: 'Too many wrong attempts. Please enter your mobile number again.',
+      text:  '❌ Too many incorrect attempts. Please enter your mobile number again.',
+    });
+    return;
+  }
+
+  const remaining = 3 - attempts;
+  await sendMsg(from, {
+    speak: 'Incorrect OTP. You have ' + remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining.',
+    text:  '❌ Incorrect OTP. *' + remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining.*\n\nType *resend* to get a new OTP.',
+  });
+}
 async function soloConsentGate(from) {
   setSession(from, STATE.CONSENT_GATE);
   updateSessionData(from, { soloFlow: true });

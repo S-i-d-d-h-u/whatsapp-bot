@@ -27,8 +27,13 @@ export async function handleKycVendorNotReady(from) {
   await sendText(from, 'Take your time. Send "ready" when you want to proceed.');
 }
 
-// Vendor uploads video
+// Vendor uploads video (assisted flow)
 export async function handleKYCVideoUpload(from, mediaObject) {
+  // If an image was sent instead of a video, prompt again
+  if (!mediaObject.id) {
+    await sendText(from, 'Please send a *video* file for KYC, not an image or document.');
+    return;
+  }
   await sendText(from, 'Video received. Your agent is reviewing it.');
   updateSessionData(from, {
     kyc: {
