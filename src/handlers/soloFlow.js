@@ -4,7 +4,8 @@ import { setSession, getSession, updateSessionData,
          clearSession, STATE }                        from '../utils/sessionManager.js';
 import { extractTextFromImage } from '../services/ocrService.js';
 import { extractQRCodeUPI } from '../services/qrCodeService.js';
-import { generateOTP, sendOTPVoice, verifyOTP } from '../services/otpService.js';import { generateOTP, sendOTP, verifyOTP } from '../services/otpService.js';
+import { extractQRCodeUPI } from '../services/qrCodeService.js';
+import { generateOTP, sendOTPVoice, verifyOTP } from '../services/otpService.js';
 
 const REPAY_IMG = process.env.REPAY_IMG_URL || '';
 const KYC_IMG   = process.env.KYC_IMG_URL   || '';
