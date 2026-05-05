@@ -45,6 +45,7 @@ export const STATE = {
   // Phase 6 — Finalized
   FINALIZED:          'FINALIZED',
   // Solo flow states
+  SOLO_PHONE_CONFIRM: 'SOLO_PHONE_CONFIRM',
   SOLO_OVD_CONFIRM:   'SOLO_OVD_CONFIRM',
   SOLO_OVD_CORRECT:   'SOLO_OVD_CORRECT',
   SOLO_QR_CONFIRM:    'SOLO_QR_CONFIRM',

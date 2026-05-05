@@ -52,12 +52,57 @@ async function sendStatus(from, text) {
 // PHASE 0 — Intro
 // ══════════════════════════════════════════════════════════════════════════
 export async function soloStart(from) {
-  setSession(from, STATE.COLLECT_PHONE);
-  updateSessionData(from, { soloFlow: true, dbPath: 'bank', awaitingPhoneEntry: true });
-  await sendMsg(from, {
-    speak: 'Please enter your 10-digit bank-linked mobile number.',
-    text:  '📱 Please enter your *10-digit bank-linked mobile number*.',
-  });
+  // `from` is the WhatsApp number (with country code, e.g. "919876543210")
+  // Strip the leading country code so we have a clean 10-digit number
+  const cleaned = from.replace(/^\+?91/, '').replace(/\D/g, '');
+  const isValidIndian = /^[6-9]\d{9}$/.test(cleaned);
+
+  setSession(from, STATE.SOLO_PHONE_CONFIRM);
+  updateSessionData(from, { soloFlow: true, dbPath: 'bank' });
+
+  if (isValidIndian) {
+    // Pre-fill and ask vendor to confirm
+    updateSessionData(from, { pendingPhone: cleaned });
+    await sendMsgButtons(from, {
+      speak:
+        'Is ' + cleaned + ' your bank-linked mobile number? ' +
+        'Press Yes to confirm or No to enter a different number.',
+      text:
+        '📱 Is *' + cleaned + '* your bank-linked mobile number?\n\n' +
+        '_This is the number you are messaging from._',
+      buttons: [
+        { id: 'solo_phone_yes', title: 'Yes, that\'s correct' },
+        { id: 'solo_phone_no',  title: 'No, enter different' },
+      ],
+      header: 'Confirm Your Number',
+    });
+  } else {
+    // Fallback — WhatsApp number didn't look like a valid Indian mobile
+    setSession(from, STATE.COLLECT_PHONE);
+    updateSessionData(from, { soloFlow: true });
+    await sendMsg(from, {
+      speak: 'Please enter your 10-digit bank-linked mobile number.',
+      text:  '📱 Please enter your *10-digit bank-linked mobile number*.',
+    });
+  }
+}
+
+// ── Handles the Yes/No confirmation of the pre-filled number ───────────────
+export async function soloHandlePhoneConfirm(from, buttonId) {
+  const { data } = getSession(from);
+
+  if (buttonId === 'solo_phone_yes') {
+    // Use the pre-filled number and proceed to OTP
+    await soloHandlePhone(from, data.pendingPhone);
+  } else {
+    // Ask vendor to type the correct number
+    setSession(from, STATE.COLLECT_PHONE);
+    updateSessionData(from, { soloFlow: true, pendingPhone: null });
+    await sendMsg(from, {
+      speak: 'Please enter your 10-digit bank-linked mobile number.',
+      text:  '📱 Please enter your *10-digit bank-linked mobile number*.',
+    });
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════

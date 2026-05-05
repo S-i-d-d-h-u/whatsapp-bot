@@ -52,7 +52,7 @@ import { handleRepaymentSelection,
 import { handleSupportSelection,
          handleFinalizedText }            from './phase6_finalization.js';
 import {
-  soloStart, soloHandlePhone, soloHandleOtp, soloHandleConsent,
+  soloStart, soloHandlePhone, soloHandlePhoneConfirm, soloHandleOtp, soloHandleConsent,
   soloHandleDbConfirm, soloHandleOVD, soloHandleOVDConfirm,
   soloHandleOVDCorrection, soloHandleQR, soloHandleQRConfirm,
   soloHandleQRCorrection, soloHandleRefs, soloHandleFinancialConsent,
@@ -115,6 +115,11 @@ async function handleTextMessage(from, state, text) {
   }
 
   switch (state) {
+    // Solo flow — phone confirmation screen; nudge if they type instead of tap
+    case STATE.SOLO_PHONE_CONFIRM:
+      await sendText(from, 'Please tap *"Yes, that\'s correct"* or *"No, enter different"* above.');
+      break;
+
     // Phase 1 — text input states
    case STATE.COLLECT_PHONE: {
       const { data } = getSession(from);
@@ -243,6 +248,7 @@ async function handleButtonMessage(from, state, buttonId) {
   if (!buttonId) return;
 
   // ── Solo flow buttons ─────────────────────────────────────────────────────
+  if (buttonId === 'solo_phone_yes' || buttonId === 'solo_phone_no')     { await soloHandlePhoneConfirm(from, buttonId); return; }
  // ── Language selection ────────────────────────────────────────────────────
   if (buttonId.startsWith('lang_')) { await handleLanguageSelect(from, buttonId); return; }
 
