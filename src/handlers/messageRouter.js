@@ -18,6 +18,7 @@ import { getSession, STATE }    from '../utils/sessionManager.js';
 import { sendText }             from '../services/whatsappService.js';
 
 import { startOnboarding,
+         handleLanguageSelect,
          handleOnboardingReply }          from './phase0_onboarding.js';
 import { handlePhoneInput,
          handleDbPathChoice,
@@ -242,7 +243,11 @@ async function handleButtonMessage(from, state, buttonId) {
   if (!buttonId) return;
 
   // ── Solo flow buttons ─────────────────────────────────────────────────────
+ // ── Language selection ────────────────────────────────────────────────────
+  if (buttonId.startsWith('lang_')) { await handleLanguageSelect(from, buttonId); return; }
+
   if (buttonId === 'solo_consent_yes' || buttonId === 'solo_consent_no') { await soloHandleConsent(from, buttonId); return; }
+ if (buttonId === 'solo_consent_yes' || buttonId === 'solo_consent_no') { await soloHandleConsent(from, buttonId); return; }
   if (buttonId === 'solo_db_yes'      || buttonId === 'solo_db_no')      { await soloHandleDbConfirm(from, buttonId); return; }
   if (buttonId === 'solo_ovd_yes'     || buttonId === 'solo_ovd_no')     { await soloHandleOVDConfirm(from, buttonId); return; }
   if (buttonId === 'solo_qr_yes'      || buttonId === 'solo_qr_no')      { await soloHandleQRConfirm(from, buttonId); return; }

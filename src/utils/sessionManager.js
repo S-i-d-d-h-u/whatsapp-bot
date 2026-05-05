@@ -11,6 +11,8 @@ export const STATE = {
   IDLE:               'IDLE',
   // Phase 0 — Onboarding
   ONBOARDING:         'ONBOARDING',
+// Language selection
+  LANGUAGE_SELECT:     'LANGUAGE_SELECT',
   // Phase 1 — Loan Customization
   COLLECT_PHONE:      'COLLECT_PHONE',
   COLLECT_UPI:        'COLLECT_UPI',
