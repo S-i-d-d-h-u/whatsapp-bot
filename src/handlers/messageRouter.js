@@ -246,8 +246,8 @@ async function handleButtonMessage(from, state, buttonId) {
   if (buttonId === 'lang_more') { await showMoreLanguages(from); return; }
   if (buttonId.startsWith('lang_')) { await handleLanguageSelect(from, buttonId); return; }
 
+  if (buttonId === 'solo_phone_yes'   || buttonId === 'solo_phone_no')   { await soloHandlePhoneConfirm(from, buttonId); return; }
   if (buttonId === 'solo_consent_yes' || buttonId === 'solo_consent_no') { await soloHandleConsent(from, buttonId); return; }
- if (buttonId === 'solo_consent_yes' || buttonId === 'solo_consent_no') { await soloHandleConsent(from, buttonId); return; }
   if (buttonId === 'solo_db_yes'      || buttonId === 'solo_db_no')      { await soloHandleDbConfirm(from, buttonId); return; }
   if (buttonId === 'solo_ovd_yes'     || buttonId === 'solo_ovd_no')     { await soloHandleOVDConfirm(from, buttonId); return; }
   if (buttonId === 'solo_qr_yes'      || buttonId === 'solo_qr_no')      { await soloHandleQRConfirm(from, buttonId); return; }
