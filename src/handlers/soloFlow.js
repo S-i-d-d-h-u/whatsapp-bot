@@ -71,8 +71,8 @@ export async function soloStart(from) {
       speak: 'Is ' + spellDigits(detected) + ' your bank-linked mobile number?',
       text:  '📱 Is *' + detected + '* your bank-linked mobile number?',
       buttons: [
-        { id: 'solo_phone_yes', title: 'Yes, that\'s correct' },
-        { id: 'solo_phone_no',  title: 'No, use a different number' },
+        { id: 'solo_phone_yes', title: 'Yes, correct' },
+        { id: 'solo_phone_no',  title: 'No, change number' },
       ],
       header: 'Confirm Your Number',
     });
