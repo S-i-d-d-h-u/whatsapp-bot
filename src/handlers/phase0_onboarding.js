@@ -1,4 +1,4 @@
-// phase0_onboarding.js — Phase 0 (v6)
+// phase0_onboarding.js — Phase 0 (v8)
 // Language select → Scheme intro (image + audio + buttons)
 import { sendButtons, sendImage, sendAudio, sendList } from '../services/whatsappService.js';
 import { setSession, clearSession, updateSessionData, STATE } from '../utils/sessionManager.js';
@@ -14,15 +14,14 @@ export async function startOnboarding(from) {
   // Welcome image first
   await sendImage(from, WELCOME_IMG_URL, '').catch(() => {});
 
-  // 3 quick-tap language buttons + "More Languages" overflow
+  // 2 quick-tap buttons + "More Languages" third button
   await sendButtons(
     from,
     'Please choose your preferred language to continue.',
     [
-      { id: 'lang_hindi',    title: 'हिन्दी' },
-      { id: 'lang_english',  title: 'English' },
-      { id: 'lang_gujarati', title: 'ગુજરાતી' },
-      { id: 'lang_more',     title: 'More Languages' },
+      { id: 'lang_hindi',   title: 'Hindi' },
+      { id: 'lang_english', title: 'English' },
+      { id: 'lang_more',    title: 'More Languages' },
     ],
     'Welcome to PM SVANidhi'
   );
@@ -38,13 +37,14 @@ export async function showMoreLanguages(from) {
       {
         title: 'Regional Languages',
         rows: [
-          { id: 'lang_bengali',   title: 'Bengali'  },
-          { id: 'lang_tamil',     title: 'Tamil'    },
-          { id: 'lang_telugu',    title: 'Telugu'   },
-          { id: 'lang_marathi',   title: 'Marathi'  },
-          { id: 'lang_kannada',   title: 'Kannada'  },
-          { id: 'lang_malayalam', title: 'Malayalam'},
-          { id: 'lang_punjabi',   title: 'Punjabi'  },
+          { id: 'lang_gujarati',  title: 'Gujarati',  description: 'ગુજરાતીમાં આગળ વધો' },
+          { id: 'lang_bengali',   title: 'Bengali',   description: 'বাংলায় চালিয়ে যান' },
+          { id: 'lang_tamil',     title: 'Tamil',     description: 'தமிழில் தொடரவும்' },
+          { id: 'lang_telugu',    title: 'Telugu',    description: 'తెలుగులో కొనసాగించండి' },
+          { id: 'lang_marathi',   title: 'Marathi',   description: 'मराठीत सुरू ठेवा' },
+          { id: 'lang_kannada',   title: 'Kannada',   description: 'ಕನ್ನಡದಲ್ಲಿ ಮುಂದುವರಿಯಿರಿ' },
+          { id: 'lang_malayalam', title: 'Malayalam', description: 'മലയാളത്തിൽ തുടരുക' },
+          { id: 'lang_punjabi',   title: 'Punjabi',   description: 'ਪੰਜਾਬੀ ਵਿੱਚ ਜਾਰੀ ਰੱਖੋ' },
         ],
       },
     ],
