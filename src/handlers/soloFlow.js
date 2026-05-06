@@ -40,12 +40,12 @@ async function sendMsg(from, { image = null, speak, text }) {
   if (text)   await sendText(from, text);
 }
 
-async function sendMsgButtons(from, { speak, text, buttons, header = '' }) {
+async function sendMsgButtons(from, { speak, text, buttons, header = null }) {
   if (speak) await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   await sendButtons(from, text, buttons, header);
 }
 
-async function sendMsgList(from, { image = null, speak, body, buttonLabel, sections, header = '' }) {
+async function sendMsgList(from, { image = null, speak, body, buttonLabel, sections, header = null }) {
   if (image)  await sendImage(from, image, '').catch(() => {});
   if (speak)  await sendAudio(from, forAudio(speak)).catch(e => console.error('[TTS]', e.message));
   await sendList(from, body, buttonLabel, sections, header);
