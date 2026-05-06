@@ -14,6 +14,13 @@ const TENURE    = 12;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
+// Spells a phone number digit-by-digit for TTS: '9876543210' → 'nine eight seven six five four three two one zero'
+function spellDigits(numStr) {
+  const words = { '0':'zero','1':'one','2':'two','3':'three','4':'four',
+                  '5':'five','6':'six','7':'seven','8':'eight','9':'nine' };
+  return numStr.split('').map(d => words[d] || d).join(' ');
+}
+
 function forAudio(text) {
   return text
     .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
@@ -52,34 +59,27 @@ async function sendStatus(from, text) {
 // PHASE 0 — Intro
 // ══════════════════════════════════════════════════════════════════════════
 export async function soloStart(from) {
-  // `from` is the WhatsApp number (with country code, e.g. "919876543210")
-  // Strip the leading country code so we have a clean 10-digit number
-  const cleaned = from.replace(/^\+?91/, '').replace(/\D/g, '');
-  const isValidIndian = /^[6-9]\d{9}$/.test(cleaned);
+  // WhatsApp sends `from` as 91XXXXXXXXXX — strip country code to get 10 digits
+  const detected = from.replace(/^\+?91/, '');
+  const isValid  = /^[6-9]\d{9}$/.test(detected);
 
   setSession(from, STATE.SOLO_PHONE_CONFIRM);
-  updateSessionData(from, { soloFlow: true, dbPath: 'bank' });
+  updateSessionData(from, { soloFlow: true, dbPath: 'bank', detectedPhone: isValid ? detected : null });
 
-  if (isValidIndian) {
-    // Pre-fill and ask vendor to confirm
-    updateSessionData(from, { pendingPhone: cleaned });
+  if (isValid) {
     await sendMsgButtons(from, {
-      speak:
-        'Is ' + cleaned + ' your bank-linked mobile number? ' +
-        'Press Yes to confirm or No to enter a different number.',
-      text:
-        '📱 Is *' + cleaned + '* your bank-linked mobile number?\n\n' +
-        '_This is the number you are messaging from._',
+      speak: 'Is ' + spellDigits(detected) + ' your bank-linked mobile number?',
+      text:  '📱 Is *' + detected + '* your bank-linked mobile number?',
       buttons: [
         { id: 'solo_phone_yes', title: 'Yes, that\'s correct' },
-        { id: 'solo_phone_no',  title: 'No, enter different' },
+        { id: 'solo_phone_no',  title: 'No, use a different number' },
       ],
       header: 'Confirm Your Number',
     });
   } else {
-    // Fallback — WhatsApp number didn't look like a valid Indian mobile
+    // Fallback: couldn't parse a valid number from the sender ID
     setSession(from, STATE.COLLECT_PHONE);
-    updateSessionData(from, { soloFlow: true });
+    updateSessionData(from, { soloFlow: true, dbPath: 'bank' });
     await sendMsg(from, {
       speak: 'Please enter your 10-digit bank-linked mobile number.',
       text:  '📱 Please enter your *10-digit bank-linked mobile number*.',
@@ -87,17 +87,16 @@ export async function soloStart(from) {
   }
 }
 
-// ── Handles the Yes/No confirmation of the pre-filled number ───────────────
 export async function soloHandlePhoneConfirm(from, buttonId) {
   const { data } = getSession(from);
 
   if (buttonId === 'solo_phone_yes') {
-    // Use the pre-filled number and proceed to OTP
-    await soloHandlePhone(from, data.pendingPhone);
+    // Use the pre-detected number — go straight to OTP
+    await soloHandlePhone(from, data.detectedPhone);
   } else {
     // Ask vendor to type the correct number
     setSession(from, STATE.COLLECT_PHONE);
-    updateSessionData(from, { soloFlow: true, pendingPhone: null });
+    updateSessionData(from, { soloFlow: true });
     await sendMsg(from, {
       speak: 'Please enter your 10-digit bank-linked mobile number.',
       text:  '📱 Please enter your *10-digit bank-linked mobile number*.',

@@ -39,7 +39,7 @@ export function sendImage(to, imageUrl, caption = '') {
 export function sendAudio(to, text) {
   // Google TTS URL — works for short strings up to ~200 chars
   const encoded = encodeURIComponent(text.slice(0, 200));
-  const ttsUrl  = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=en&client=tw-ob`;
+  const ttsUrl  = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=en-IN&client=tw-ob`;
   return send({
     to,
     type:  'audio',

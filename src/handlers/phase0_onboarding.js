@@ -67,20 +67,15 @@ async function showSchemeIntro(from) {
     await sendImage(from, SCHEME_IMG_URL, '').catch(() => {});
   }
 
-  // AUDIO second — mirrors the visible text only, nothing extra
-  const bodyText =
-    'Do you want to apply on your own, or with the help of a call agent? ' +
-    'Tap Self Avail to apply on your own, or Call Agent for assisted help.';
+  // AUDIO second — only the single question line
+  const bodyText = 'Do you want to apply on your own, or with the help of a call agent?';
 
   await sendAudio(from, bodyText).catch(e => console.error('[TTS onboarding]', e.message));
 
   // TEXT + BUTTONS third — no header
   await sendButtons(
     from,
-    'Do you want to apply on your own, or with the help of a call agent?\n\n' +
-    '• *Self Avail* — Apply independently\n' +
-    '• *Call Agent* — Get assisted help\n\n' +
-    'Call ' + AGENT_NUMBER + ' for agent assistance.',
+    'Do you want to apply on your own, or with the help of a call agent?',
     [
       { id: 'onboard_call', title: 'Call Agent' },
       { id: 'onboard_self', title: 'Self Avail' },
